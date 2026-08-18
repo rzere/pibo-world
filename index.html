@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Pibo · Pocket Planet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,7 +26,10 @@
     <div id="intro" class="intro">
       <div class="intro-mark">Pibo</div>
       <div class="intro-sub">your pocket planet</div>
-      <div class="intro-hint">move with <b>WASD</b> / <b>arrows</b> · interact with <b>E</b></div>
+      <div class="intro-hint">
+        <span class="hint-kb">move with <b>WASD</b> / <b>arrows</b> · interact with <b>E</b></span>
+        <span class="hint-touch">use the <b>joystick</b> · tap <b>E</b> to interact</span>
+      </div>
     </div>
 
     <!-- Contextual interaction prompt -->
@@ -59,6 +62,16 @@
 
     <!-- Transient toast for gentle world moments -->
     <div id="toast" class="toast hidden"></div>
+
+    <!-- Touch-only: analog stick + interact. Hidden on pointer/keyboard. -->
+    <div id="mobile-controls" class="mobile-controls hidden">
+      <div id="joystick" class="joystick" role="application" aria-label="Move">
+        <div class="joystick-base">
+          <div class="joystick-knob"></div>
+        </div>
+      </div>
+      <button type="button" id="action-btn" class="action-btn" aria-label="Interact">E</button>
+    </div>
   </div>
 
   <noscript>Pibo needs JavaScript to bloom.</noscript>

@@ -31,6 +31,7 @@ export class Game {
     this._initCamera();
 
     this.input = new Input();
+    this.ui.attachInput(this.input);
     window.addEventListener("resize", () => this._onResize());
 
     this._camUp = this.pibo.dir.clone();

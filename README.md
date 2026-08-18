@@ -34,6 +34,7 @@ connection the first time.
 - **1 / 2 / 3** — choose a plant
 - **Esc** — step back from a panel
 - **🪴** (top-right) — see the things you've grown
+- **Phone / tablet** — a little joystick (bottom-left) steers Pibo; tap **E** (bottom-right) to interact. On-screen prompts and plant cards are tappable too.
 
 Walk to the three planter beds in the garden, plant a seed in each, wait a few seconds for
 them to grow, and inspect them to learn a tiny fact. Grow all three and watch what happens
@@ -47,7 +48,7 @@ Everything is a small, self-contained module so the world can grow later without
 src/
   core/
     Game.js         orchestrator: renderer, loop, camera, interaction wiring
-    Input.js        keyboard (held movement vs. one-shot actions)
+    Input.js        keyboard + analog stick (held movement vs. one-shot actions)
     SphereMath.js   living on a sphere: placement, movement, orientation
   world/
     Planet.js       the Pocket Planet sphere + surface placement
@@ -64,6 +65,7 @@ src/
     plants.js       the three plants + their one-line facts
   ui/
     UI.js           minimal overlay: prompt, plant panel, facts, collection
+    Joystick.js     on-screen analog stick for phones and tablets
 ```
 
 ### Designed to extend

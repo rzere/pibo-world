@@ -22,6 +22,8 @@ html, body {
   -webkit-font-smoothing: antialiased;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 /* Dreamy toy-diorama sky behind the floating planet */
@@ -103,6 +105,12 @@ html, body {
   box-shadow: var(--shadow);
 }
 .intro-hint b { color: var(--coral); }
+.hint-touch { display: none; }
+.touch-ui .hint-kb { display: none; }
+.touch-ui .hint-touch { display: inline; }
+.touch-only { display: none; }
+.touch-ui .kb-only { display: none; }
+.touch-ui .touch-only { display: inline; }
 
 /* Interaction prompt pill */
 .prompt {
@@ -253,3 +261,106 @@ html, body {
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Mobile virtual joystick + interact */
+#ui .mobile-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+#ui .joystick,
+#ui .action-btn { pointer-events: auto; }
+.joystick {
+  position: absolute;
+  left: max(18px, env(safe-area-inset-left));
+  bottom: max(22px, env(safe-area-inset-bottom));
+  width: 132px;
+  height: 132px;
+  touch-action: none;
+  display: grid;
+  place-items: center;
+}
+.joystick-base {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 253, 248, 0.95) 0%, rgba(255, 247, 236, 0.72) 58%, rgba(255, 230, 211, 0.55) 100%);
+  box-shadow:
+    var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -6px 12px rgba(90, 60, 40, 0.08);
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+}
+.joystick-knob {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff8ef 0%, #ffd7bf 100%);
+  box-shadow:
+    0 4px 0 rgba(255, 154, 118, 0.45),
+    0 8px 16px rgba(90, 60, 40, 0.16),
+    inset 0 2px 0 #fff;
+  border: 2px solid rgba(255, 154, 118, 0.35);
+  transform: translate(0, 0);
+  will-change: transform;
+}
+.joystick.active .joystick-knob {
+  background: linear-gradient(180deg, #fff 0%, #ffc9a8 100%);
+}
+.action-btn {
+  position: absolute;
+  right: max(22px, env(safe-area-inset-right));
+  bottom: max(36px, calc(env(safe-area-inset-bottom) + 18px));
+  width: 68px;
+  height: 68px;
+  pointer-events: auto;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff, #ffe6d3);
+  box-shadow:
+    0 4px 0 rgba(255, 154, 118, 0.5),
+    var(--shadow),
+    inset 0 1px 0 #fff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--coral);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, opacity 0.18s ease;
+}
+.action-btn:active { transform: translateY(2px) scale(0.96); }
+.action-btn.ready {
+  animation: action-pulse 1.4s ease-in-out infinite;
+}
+.action-btn.close-mode { font-size: 18px; }
+@keyframes action-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+/* Keep HUD above thumbs on touch */
+.touch-ui .prompt {
+  bottom: max(28%, calc(env(safe-area-inset-bottom) + 168px));
+  cursor: pointer;
+}
+.touch-ui .panel { bottom: max(26%, calc(env(safe-area-inset-bottom) + 156px)); }
+.touch-ui .fact { bottom: max(26%, calc(env(safe-area-inset-bottom) + 156px)); }
+.touch-ui .toast { bottom: max(32%, calc(env(safe-area-inset-bottom) + 180px)); }
+.touch-ui .collection-btn {
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+}
+.touch-ui .collection {
+  top: max(74px, calc(env(safe-area-inset-top) + 56px));
+  right: max(18px, env(safe-area-inset-right));
+}
+
+@media (max-width: 520px) {
+  .cards { flex-direction: column; }
+  .panel { width: min(360px, 92vw); }
+}
