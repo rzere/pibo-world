@@ -17,10 +17,9 @@ export const SHOW_VILLAGE_FRIENDS = false;
 
 /**
  * Pibo's drawing is mostly empty space above the pot, so his visible body is
- * about half the picture. At this scale he stands a little taller than
- * Paria's animals instead of towering over them.
+ * about half the picture. At this scale he stands as tall as Paria's animals.
  */
-export const PIBO_SCALE = 0.48;
+export const PIBO_SCALE = 0.4;
 
 export function getVideoApiUrl() {
   try {
