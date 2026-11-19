@@ -580,10 +580,12 @@ export class Game {
     this.ui.hideIntro();
     this.pibo.setVisible(false);
     this.ui.openArt(this.pibo.facing);
+    this.multiplayer?.enterArt();
   }
 
   _leaveArt(reason = "exit") {
     if (!this.ui.isArtOpen) return;
+    this.multiplayer?.exitArt();
     this.ui.closeArt();
     const pad = LAYOUT.cottageDoor;
     const face = this._faceToward(pad, { x: pad.x, z: 0.2 });

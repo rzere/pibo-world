@@ -6,6 +6,8 @@ import { Net } from "./Net.js";
 
 const SEND_EVERY = 0.1;
 const HEARTBEAT = 1.0;
+/** Art-room floor units per second (picture pixels / 100). */
+const ART_SPEED = 2.4;
 
 /**
  * Glue between the realtime channel and the island. Pibo's walker still owns
@@ -190,28 +192,106 @@ export class Multiplayer {
     this.lobby.setPeople(peers, this.space);
   }
 
+  /**
+   * The art room is its own space next to wherever you came from, so
+   * everyone who walks in from the same world or room meets on its floor.
+   */
+  enterArt() {
+    if (!this.net || this.art) return;
+    this._artBase = this.space;
+    const p = this.game.ui.art.spawnPoint();
+    this.art = { x: p.x, y: p.y, fx: 0, fz: 1, moving: false };
+    this.net.setSpace(`art:${this._artBase}`);
+    this._last = "";
+    this._beatT = HEARTBEAT;
+    this._syncPeers();
+  }
+
+  exitArt() {
+    if (!this.art) return;
+    this.art = null;
+    this.game.ui.art?.clearWalkers();
+    if (!this.net) return;
+    this.net.setSpace(this._artBase || "world");
+    this._last = "";
+    this._beatT = HEARTBEAT;
+    this._syncPeers();
+  }
+
+  _updateArt(dt) {
+    const a = this.art;
+    const room = this.game.ui.art;
+    const input = this.game.input;
+    let dx = input.turn;
+    let dy = -input.moveForward;
+    const mag = Math.hypot(dx, dy);
+    a.moving = mag > 0.08;
+    if (a.moving) {
+      dx /= mag;
+      dy /= mag;
+      const step = ART_SPEED * Math.min(1, mag) * dt;
+      const next = room.moveOnFloor(a.x, a.y, dx * step, dy * step);
+      a.x = next.x;
+      a.y = next.y;
+      a.fx = dx;
+      a.fz = dy;
+    }
+
+    const walkers = [];
+    if (this.local) {
+      this.local.follow(dt, { x: a.x, z: a.y, faceX: a.fx, faceZ: a.fz, moving: a.moving, flying: false });
+      walkers.push(walkerOf(this.local, "me", this.me.name, a.moving));
+    } else {
+      const pibo = this.game.pibo;
+      pibo.faceX = a.fx;
+      pibo.faceZ = a.fz;
+      pibo.moving = a.moving;
+      pibo._animate(dt);
+      const view = pibo.facing;
+      walkers.push({
+        id: "me",
+        name: this.me.name,
+        image: pibo.material.map?.image,
+        w: pibo.asset.width * pibo.charScale * (pibo._wide?.[view] || 1),
+        h: pibo.asset.height * pibo.charScale * (pibo._grow?.[view] || 1),
+        x: a.x,
+        y: a.y,
+        moving: a.moving,
+      });
+    }
+    for (const [id, avatar] of this.remotes) {
+      if (avatar.seen && avatar.group.visible) walkers.push(walkerOf(avatar, id, avatar.peerName, avatar.moving));
+    }
+    room.renderWalkers(walkers, dt);
+  }
+
   update(dt) {
     if (!this.net) return;
     const pibo = this.game.pibo;
-    if (this.local) {
+    for (const avatar of this.remotes.values()) avatar.drive(dt);
+    if (this.art && this.game.ui.isArtOpen) {
+      this._updateArt(dt);
+    } else if (this.local) {
       this.local.follow(dt, pibo);
       this.local.setVisible(pibo.group.visible);
     }
-    for (const avatar of this.remotes.values()) avatar.drive(dt);
 
     this._sendT += dt;
     this._beatT += dt;
     if (this._sendT < SEND_EVERY) return;
     this._sendT = 0;
-    const state = {
-      x: round(pibo.x),
-      z: round(pibo.z),
-      fx: round(pibo.faceX),
-      fz: round(pibo.faceZ),
-      m: pibo.moving ? 1 : 0,
-      f: pibo.flying ? 1 : 0,
-      v: pibo.group.visible ? 1 : 0,
-    };
+    const a = this.art;
+    const state = a
+      ? { x: round(a.x), z: round(a.y), fx: round(a.fx), fz: round(a.fz), m: a.moving ? 1 : 0, f: 0, v: 1 }
+      : {
+          x: round(pibo.x),
+          z: round(pibo.z),
+          fx: round(pibo.faceX),
+          fz: round(pibo.faceZ),
+          m: pibo.moving ? 1 : 0,
+          f: pibo.flying ? 1 : 0,
+          v: pibo.group.visible ? 1 : 0,
+        };
     const key = JSON.stringify(state);
     if (key === this._last && this._beatT < HEARTBEAT) return;
     this._last = key;
@@ -222,4 +302,17 @@ export class Multiplayer {
 
 function round(n) {
   return Math.round(n * 100) / 100;
+}
+
+function walkerOf(avatar, id, name, moving) {
+  return {
+    id,
+    name,
+    image: avatar.material.map?.image,
+    w: avatar.width,
+    h: avatar.height,
+    x: avatar.x,
+    y: avatar.z,
+    moving,
+  };
 }

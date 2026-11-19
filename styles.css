@@ -301,8 +301,8 @@ html, body {
 .in-trophy .library-go-btn,
 .in-trophy .lighthouse-marker,
 .in-trophy .prompt { display: none !important; }
-.in-art .mobile-controls,
 .in-trophy .mobile-controls { display: none !important; }
+.in-art #ui .mobile-controls { z-index: 9; }
 .in-studio .toast { bottom: 40%; }
 .in-studio .joystick {
   visibility: hidden;
@@ -1968,3 +1968,53 @@ html.phone-landscape .art-row { gap: 4px; }
 html.phone-landscape .world-bar { top: 8px; padding: 3px; }
 html.phone-landscape .world-where,
 html.phone-landscape .world-btn { padding: 5px 9px; font-size: 12px; }
+
+/* ---------- Shared art room: everyone walks the floor ---------- */
+.art-overlay .art-pibo,
+.art-overlay .art-shadow { display: none; }
+.art-floor {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.art-walker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+.art-walker-shadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -55%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.16) 50%, rgba(0, 0, 0, 0) 72%);
+}
+.art-walker-body {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.art-walker-body canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.art-walker-name {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  font: 600 12px "Fredoka", system-ui, sans-serif;
+  color: #4a3a30;
+  white-space: nowrap;
+  background: rgba(255, 250, 240, 0.92);
+  border: 1.5px solid rgba(90, 70, 56, 0.8);
+  border-radius: 999px;
+}
+.art-walker-name[hidden] { display: none; }
