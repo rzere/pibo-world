@@ -414,6 +414,8 @@ function label(ctx, text, x, y, color) {
 }
 
 function emojiAt(ctx, e, x, y, size) {
+  // Color emoji take the fill's alpha; a leftover shadow fill makes them ghostly.
+  ctx.fillStyle = "#000";
   ctx.font = `${Math.round(size)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";

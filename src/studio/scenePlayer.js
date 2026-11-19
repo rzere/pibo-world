@@ -227,6 +227,8 @@ function bubble(ctx, text, x, y) {
 
 function emoji(ctx, e, x, y, size, alpha) {
   ctx.globalAlpha = alpha;
+  // Color emoji take the fill's alpha; a leftover shadow fill makes them ghostly.
+  ctx.fillStyle = "#000";
   ctx.font = `${Math.round(size)}px ${FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
