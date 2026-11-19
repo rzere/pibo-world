@@ -110,6 +110,7 @@ export class Multiplayer {
 
   /** Where a speaker's bubble goes: on a room floor, or over the island sprite. */
   _headOf(id) {
+    if (this.mini) return null;
     if (this.art) return this.art.floor.walkerTop?.(id) || null;
     if (id === "me") return this.bubbles.meshTop(this.local ? this.local.mesh : this.game.pibo.mesh);
     return this.bubbles.meshTop(this.remotes.get(id)?.mesh);
@@ -155,7 +156,7 @@ export class Multiplayer {
     this._last = "";
     this._beatT = HEARTBEAT;
     this.game.ui.toast("Back in the world 🌍", 1800);
-    this._spaceChanged();
+    if (this._chatSpace !== this.space) this._spaceChanged();
     this._syncPeers();
   }
 
@@ -297,6 +298,7 @@ export class Multiplayer {
   _spaceChanged() {
     this.bubbles.clear();
     const space = this.space;
+    this._chatSpace = space;
     let where = "the world";
     if (space.startsWith("art:")) where = "the art room";
     else if (space.startsWith("arcade:")) where = "the arcade";

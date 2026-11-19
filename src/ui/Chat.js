@@ -85,6 +85,8 @@ export class Chat {
     this.input.setAttribute("aria-label", "Chat message");
     this.input.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
+        // Esc only stops typing; the game would otherwise read it as "leave this room".
+        e.stopPropagation();
         this.input.blur();
         document.getElementById("scene")?.focus();
       }
