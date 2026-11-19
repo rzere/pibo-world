@@ -37,7 +37,7 @@ Start from this recipe and make it match the kid's wish (rename it, pick fitting
 ${JSON.stringify(base)}
 
 Rules: friendly and non-violent wording (bonk, splash, tag), no real brands. title <= 32 chars, intro <= 140 chars and says how to play (arrows/joystick to move${base.type === "battle" ? ", Space or the button to throw" : ""}), winText is a short phrase that follows a player's name. item, hazard and each decor are single emoji. sky is two hex colors, ground and accent are hex. goal: race 1, battle 2-8, collect 5-25. speed 0.7-1.5, hazards 0-14, seconds 30-120.
-Reply with only the JSON object, no other text.`;
+Reply with only the JSON object on one line, no markdown and no other text.`;
 }
 
 export default async function handler(req, res) {
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 600,
+        max_tokens: 1500,
         messages: [{ role: "user", content: prompt(input, base) }],
       }),
       signal: AbortSignal.timeout(20000),
