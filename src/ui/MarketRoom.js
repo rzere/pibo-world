@@ -871,7 +871,8 @@ export class MarketRoom {
       at(slot.el, slot.x, slot.y);
       slot.el.style.width = `${ITEM_W * cover}px`;
     }
-    const keeperH = KEEPER.feet - 210;
+    // The whole character, uncropped, standing on the counter top.
+    const keeperH = KEEPER.clipBottom - 236;
     Object.assign(this.keeperBox.style, {
       left: `${ox + (KEEPER.x - KEEPER.w / 2) * cover}px`,
       top: `${oy + 210 * cover}px`,

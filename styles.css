@@ -2581,11 +2581,14 @@ html.phone-landscape .qr-btn { bottom: auto; top: max(58px, calc(env(safe-area-i
   25% { transform: translate(calc(-50% - 6px), -100%); }
   75% { transform: translate(calc(-50% + 6px), -100%); }
 }
-.market-keeper { overflow: hidden; pointer-events: none; }
+.market-keeper { overflow: visible; pointer-events: none; }
 .market-keeper-img {
   position: absolute;
   left: 50%;
-  top: 0;
+  top: auto;
+  bottom: 0;
+  width: auto;
+  max-width: none;
   transform: translateX(-50%);
   animation: market-bob 2.4s ease-in-out infinite;
 }
