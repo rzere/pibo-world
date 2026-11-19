@@ -1,5 +1,6 @@
 import { ASSETS } from "./assets.js";
 import { CRITTERS } from "./critters.js";
+import { PIBO_SCALE } from "../config.js";
 
 /**
  * Everyone you can play as. Pibo uses his three face drawings; the animals
@@ -7,13 +8,12 @@ import { CRITTERS } from "./critters.js";
  * Critter frame order: front, three-left, side-left, back-left, front,
  * three-right, side-right, back-right.
  */
-const PIBO_SCALE = 2 / 3;
 const faces = ASSETS.pibo.faces;
 
 const PIBO = {
   id: "pibo",
   label: "Pibo",
-  thumb: faces.front,
+  thumb: "assets/pibo/pibo-thumb.png",
   def: {
     id: "pibo",
     src: faces.front,

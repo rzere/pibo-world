@@ -17,7 +17,7 @@ import { Pibo } from "../entities/Pibo.js";
 import { Critter } from "../entities/Critter.js";
 import { CRITTERS } from "../data/critters.js";
 import { getPlant } from "../data/plants.js";
-import { SHOW_VILLAGE_FRIENDS } from "../config.js";
+import { PIBO_SCALE, SHOW_VILLAGE_FRIENDS } from "../config.js";
 
 const ENTER_RANGE = 2.15;
 
@@ -149,7 +149,7 @@ export class Game {
       basis: this.basis,
       x: start.x,
       z: start.z,
-      scale: 2 / 3,
+      scale: PIBO_SCALE,
     });
     this.scene.add(this.pibo.group);
     this.critters = CRITTERS.map((def) => new Critter({
