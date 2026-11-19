@@ -194,7 +194,8 @@ export class ArcadeHall {
     for (const group of DETAILS[p.type]) details[group.id] = p.details[group.id] || group.options[0].id;
     const input = { type: p.type, place: p.place, details, text: p.text, players: this.getPlayers() };
     button.disabled = true;
-    button.textContent = "✨ Claude is building your game…";
+    button.textContent = "Creating your game";
+    button.classList.add("is-loading");
     statusEl.textContent = "";
     let recipe = null;
     try {
@@ -210,6 +211,7 @@ export class ArcadeHall {
     }
     if (!recipe) recipe = buildRecipe(input);
     button.disabled = false;
+    button.classList.remove("is-loading");
     button.textContent = "✨ Make my game";
     this.closeBuilder();
     this.onBuild?.(recipe);

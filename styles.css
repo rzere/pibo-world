@@ -2195,3 +2195,16 @@ html.phone-landscape .top-label { font-size: 13px; }
   cursor: pointer;
 }
 html.touch-ui .mini-quit { top: 70px; bottom: auto; }
+.lobby-go.is-loading::after {
+  content: "";
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: loading-dots 1.2s steps(1, end) infinite;
+}
+@keyframes loading-dots {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75% { content: "..."; }
+}
