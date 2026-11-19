@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     const data = await r.json();
     const text = (data.content || []).map((c) => c.text || "").join("");
     const json = safeJson(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
-    if (!json) throw new Error("no json in reply");
+    if (!json) throw new Error(`no json from ${model} (${data.stop_reason}): ${text.slice(0, 160)}`);
     res.status(200).json({ recipe: cleanRecipe({ ...base, ...json, ai: true }), source: "claude", model });
   } catch (err) {
     res.status(200).json({ recipe: base, source: "builtin", reason: String(err.message || err).slice(0, 200) });
