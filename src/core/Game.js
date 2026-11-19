@@ -11,6 +11,7 @@ import { loadTextureSet, textureSizes } from "../world/textures.js";
 import { GardenSystem } from "../systems/GardenSystem.js";
 import { TvStudio } from "../systems/TvStudio.js";
 import { ArcadeRoom } from "../systems/ArcadeRoom.js";
+import { ArcadeHall } from "../ui/ArcadeHall.js";
 import { LibraryRoom } from "../systems/LibraryRoom.js";
 import { Pibo } from "../entities/Pibo.js";
 import { Critter } from "../entities/Critter.js";
@@ -125,6 +126,12 @@ export class Game {
     this.arcadeRoom.onMove = (id, x, y, commit) => this.ui.arcade?.moveOnScreen(id, x, y, commit);
     this.ui.arcade.onScreen = (view) => this.arcadeRoom.show(view);
     this.ui.onArcadeLeave = () => this._leaveArcade();
+    this.hall = new ArcadeHall({
+      onClose: () => this._leaveArcade(),
+      onBuild: (recipe) => this.multiplayer?.buildGame(recipe),
+      onStart: () => this.multiplayer?.startGame(),
+      getPlayers: () => this.multiplayer?.roomPlayers() || [],
+    });
     this.libraryRoom = new LibraryRoom();
     this.ui.onLibraryLeave = () => this._leaveLibrary();
     this.ui.onArtLeave = () => this._leaveArt();
@@ -248,6 +255,15 @@ export class Game {
 
     if (this.ui.isArtOpen) {
       this._handleArtInteraction();
+      this.input.endFrame();
+      return;
+    }
+
+    if (this.hall?.isOpen) {
+      if (this.input.consume("Escape")) {
+        if (!this.hall.builder.classList.contains("hidden")) this.hall.closeBuilder();
+        else if (!this.hall.playing) this._leaveArcade();
+      }
       this.input.endFrame();
       return;
     }
@@ -524,24 +540,29 @@ export class Game {
     if (this.libraryRoom.active) this._leaveLibrary("switch");
     if (this.ui.isArtOpen) this._leaveArt("switch");
     if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
-    if (this.arcadeRoom.active) this._leaveArcade();
+    if (this.hall?.isOpen) this._leaveArcade("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
+    this.ui.closeMap();
     this.started = true;
     this.ui.hideIntro();
-    this.arcadeRoom.enter();
-    this.ui.openArcade();
-    this.renderer.setClearColor(0x14080c, 1);
-    this.ui.toast("The screen is yours. Make a game on it.", 2400);
+    this.ui.hidePrompt();
+    this.pibo.setVisible(false);
+    this.hall.open();
+    this.multiplayer?.enterHall();
+    this.ui.toast("Build a game, then start it for everyone 🕹️", 2600);
   }
 
-  _leaveArcade() {
-    if (!this.arcadeRoom.active && !this.ui.isArcadeOpen) return;
-    this.arcadeRoom.leave();
-    this.ui.closeArcade();
-    this.renderer.setClearColor(0x000000, 0);
+  _leaveArcade(reason = "exit") {
+    if (!this.hall?.isOpen) return;
+    this.multiplayer?.exitHall();
+    this.hall.close();
+    const pad = LAYOUT.arcadeDoor;
+    const face = this._faceToward(pad, LAYOUT.arcade);
+    this.pibo.setVisible(true);
+    this.pibo.placeAt(pad.x, pad.z, face.x, face.z, this.collision);
     this._frameCameraOnPibo();
-    this.ui.toast("Back outside the arcade", 2000);
+    if (reason === "exit") this.ui.toast("Back outside the arcade", 1600);
   }
 
   _goToArcade() {
@@ -573,7 +594,7 @@ export class Game {
     if (this.studio.active) this._leaveStudio();
     if (this.libraryRoom.active) this._leaveLibrary("switch");
     if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
-    if (this.arcadeRoom.active) this._leaveArcade();
+    if (this.hall?.isOpen) this._leaveArcade("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     this.started = true;
@@ -599,7 +620,7 @@ export class Game {
     if (this.studio.active) this._leaveStudio();
     if (this.libraryRoom.active) this._leaveLibrary("switch");
     if (this.ui.isArtOpen) this._leaveArt("switch");
-    if (this.arcadeRoom.active) this._leaveArcade();
+    if (this.hall?.isOpen) this._leaveArcade("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     this.started = true;
@@ -627,7 +648,7 @@ export class Game {
     if (this.studio.active) this._leaveStudio();
     if (this.ui.isArtOpen) this._leaveArt("switch");
     if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
-    if (this.arcadeRoom.active) this._leaveArcade();
+    if (this.hall?.isOpen) this._leaveArcade("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     this.started = true;
@@ -659,7 +680,7 @@ export class Game {
     if (this.libraryRoom?.active) this._leaveLibrary("switch");
     if (this.ui.isArtOpen) this._leaveArt("switch");
     if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
-    if (this.arcadeRoom?.active) this._leaveArcade();
+    if (this.hall?.isOpen) this._leaveArcade("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     const face = this._faceToward(pad, look);
@@ -688,7 +709,7 @@ export class Game {
 
   _updateLighthouseGuide() {
     // Travel buttons stay in the HUD. Nothing is drawn on the island.
-    const indoors = this.studio.active || this.arcadeRoom.active || this.libraryRoom.active || this.ui.isArtOpen || this.ui.isTrophyOpen;
+    const indoors = this.studio.active || this.hall?.isOpen || this.libraryRoom.active || this.ui.isArtOpen || this.ui.isTrophyOpen;
     this.ui.setLighthouseGuide({ hidden: indoors });
   }
 

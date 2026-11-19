@@ -3,6 +3,8 @@ import { getCharacter } from "../data/characters.js";
 import { cleanCritterLook, loadCritterLook } from "../entities/critterLook.js";
 import { LAYOUT } from "../world/layout.js";
 import { Net } from "./Net.js";
+import { MiniGame } from "../arcade/MiniGame.js";
+import { cleanRecipe } from "../arcade/spec.js";
 
 const SEND_EVERY = 0.1;
 const HEARTBEAT = 1.0;
@@ -61,6 +63,7 @@ export class Multiplayer {
       this._last = "";
       this._beatT = HEARTBEAT;
     };
+    net.onArcade = (m) => this._onArcade(m);
     net.onInvite = ({ name, space }) => {
       this.lobby.showInvite(name, () => this.goTo(space));
     };
@@ -197,20 +200,42 @@ export class Multiplayer {
    * everyone who walks in from the same world or room meets on its floor.
    */
   enterArt() {
+    this._enterRoom("art", this.game.ui.art);
+  }
+
+  exitArt() {
+    if (this.art?.kind === "art") this._exitRoom();
+  }
+
+  enterHall() {
+    this._enterRoom("arcade", this.game.hall);
+    this.net?.send("arcade", { k: "hello", id: this.me.id, s: this.space });
+  }
+
+  exitHall() {
+    if (this.art?.kind !== "arcade") return;
+    this.mini?.end();
+    this.hallGame = null;
+    this.game.hall.setGame(null);
+    this._exitRoom();
+  }
+
+  /** A painted room next to wherever you came from (art room, arcade). */
+  _enterRoom(kind, floor) {
     if (!this.net || this.art) return;
     this._artBase = this.space;
-    const p = this.game.ui.art.spawnPoint();
-    this.art = { x: p.x, y: p.y, fx: 0, fz: 1, moving: false };
-    this.net.setSpace(`art:${this._artBase}`);
+    const p = floor.spawnPoint();
+    this.art = { kind, floor, x: p.x, y: p.y, fx: 0, fz: 1, moving: false };
+    this.net.setSpace(`${kind}:${this._artBase}`);
     this._last = "";
     this._beatT = HEARTBEAT;
     this._syncPeers();
   }
 
-  exitArt() {
+  _exitRoom() {
     if (!this.art) return;
+    this.art.floor.clearWalkers();
     this.art = null;
-    this.game.ui.art?.clearWalkers();
     if (!this.net) return;
     this.net.setSpace(this._artBase || "world");
     this._last = "";
@@ -218,9 +243,78 @@ export class Multiplayer {
     this._syncPeers();
   }
 
+  /* arcade games ------------------------------------------------------ */
+
+  roomPlayers() {
+    const list = [{ name: this.me?.name, char: this.me?.char }];
+    for (const p of this.net?.peers.values() || []) if (p.space === this.space) list.push({ name: p.name, char: p.char });
+    return list;
+  }
+
+  _sendArcade(m) {
+    this.net?.send("arcade", { ...m, id: this.me.id, s: this.space, name: this.me.name, thumb: getCharacter(this.me.char).thumb });
+  }
+
+  buildGame(recipe) {
+    const game = { ...recipe, by: this.me.name };
+    this.hallGame = game;
+    this.game.hall.setGame(game, this.me.name);
+    this._sendArcade({ k: "game", recipe: game });
+    this.game.ui.toast(`"${game.title}" is ready. Start it for everyone!`, 2600);
+  }
+
+  startGame() {
+    if (!this.hallGame) return;
+    const seed = Math.floor(Math.random() * 2 ** 31);
+    this._sendArcade({ k: "start", recipe: this.hallGame, seed });
+    this._startMini(this.hallGame, seed);
+  }
+
+  _onArcade(m) {
+    if (this.art?.kind !== "arcade") return;
+    if (m.k === "game") {
+      this.hallGame = cleanRecipe(m.recipe);
+      this.game.hall.setGame(this.hallGame, m.recipe?.by || m.name);
+      this.game.ui.toast(`${m.name} made "${this.hallGame.title}" 🕹️`, 2400);
+    } else if (m.k === "hello") {
+      if (this.hallGame?.by === this.me.name) this._sendArcade({ k: "game", recipe: this.hallGame });
+    } else if (m.k === "start") {
+      this.hallGame = cleanRecipe(m.recipe);
+      this.game.hall.setGame(this.hallGame, m.recipe?.by || m.name);
+      this._startMini(this.hallGame, m.seed);
+    } else {
+      this.mini?.receive(m);
+    }
+  }
+
+  _startMini(recipe, seed) {
+    if (this.mini) this.mini.end();
+    const hall = this.game.hall;
+    hall.closeBuilder();
+    hall.playing = true;
+    const players = [];
+    for (const p of this.net.peers.values()) {
+      if (p.space === this.space) players.push({ id: p.id, name: p.name, thumb: getCharacter(p.char).thumb });
+    }
+    const mini = new MiniGame({
+      parent: hall.root,
+      recipe,
+      seed,
+      me: { id: this.me.id, name: this.me.name, thumb: getCharacter(this.me.char).thumb },
+      players,
+      input: this.game.input,
+      send: (m) => this._sendArcade(m),
+      onEnd: () => {
+        if (this.mini === mini) this.mini = null;
+        hall.playing = false;
+      },
+    });
+    this.mini = mini;
+  }
+
   _updateArt(dt) {
     const a = this.art;
-    const room = this.game.ui.art;
+    const room = a.floor;
     const input = this.game.input;
     let dx = input.turn;
     let dy = -input.moveForward;
@@ -269,8 +363,9 @@ export class Multiplayer {
     if (!this.net) return;
     const pibo = this.game.pibo;
     for (const avatar of this.remotes.values()) avatar.drive(dt);
-    if (this.art && this.game.ui.isArtOpen) {
-      this._updateArt(dt);
+    this.mini?.update(dt);
+    if (this.art && this.art.floor.isOpen) {
+      if (!this.art.floor.busy) this._updateArt(dt);
     } else if (this.local) {
       this.local.follow(dt, pibo);
       this.local.setVisible(pibo.group.visible);

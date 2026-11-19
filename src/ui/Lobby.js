@@ -196,6 +196,7 @@ export class Lobby {
     const mine = space === `home:${this.profile.id}`;
     let where = `🌍 ${this.world || ""}`;
     if (space.startsWith("art:")) where = "🎨 Art room";
+    else if (space.startsWith("arcade:")) where = "🕹️ Arcade";
     else if (space !== "world") where = mine ? "🏠 Your room" : `🏠 ${hostName || "A friend"}'s room`;
     this.barWhere.textContent = where;
     this.barCount.textContent = ` · ${count} here`;
@@ -220,7 +221,9 @@ export class Lobby {
         ? "with you"
         : p.space === "world"
           ? "in the world"
-          : p.space?.startsWith("art:") ? "in the art room" : "in a room";
+          : p.space?.startsWith("art:")
+            ? "in the art room"
+            : p.space?.startsWith("arcade:") ? "in the arcade" : "in a room";
       const label = el("div", "world-person-name");
       label.append(el("b", null, p.name || "Someone"), el("small", null, where));
       const invite = el("button", "world-invite", "Invite");

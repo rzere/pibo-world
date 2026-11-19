@@ -2075,3 +2075,123 @@ html.phone-landscape .map-btn {
 html.phone-landscape .top-emoji,
 html.phone-landscape .map-btn-icon { font-size: 19px; }
 html.phone-landscape .top-label { font-size: 13px; }
+
+/* ---------- Arcade hall: build a game, play it together ---------- */
+.in-hall #ui .mobile-controls { z-index: 9; }
+.in-hall .travel-bar,
+.in-hall .map-btn,
+.in-hall .prompt,
+.in-hall .collection-btn,
+.in-hall .collection { display: none !important; }
+.hall-panel {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  width: min(320px, calc(100% - 110px));
+  font-family: "Fredoka", system-ui, sans-serif;
+}
+.hall-build {
+  padding: 12px 20px;
+  font: 700 18px "Fredoka", system-ui, sans-serif;
+  color: #fff;
+  background: #8b6ad4;
+  border: 3px solid #5c4a3e;
+  border-radius: 999px;
+  box-shadow: 0 5px 0 rgba(92, 74, 62, 0.35);
+  cursor: pointer;
+}
+.hall-build:active { transform: translateY(2px); }
+.hall-card {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--cream);
+  border: 3px solid #5c4a3e;
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+.hall-card.hidden { display: none; }
+.hall-card-title { font-size: 20px; font-weight: 700; }
+.hall-card-by { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+.hall-card-intro { font-size: 14px; margin-top: 8px; }
+.hall-start { margin-top: 12px; padding: 10px; font-size: 17px; }
+.hall-builder {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(74, 59, 53, 0.3);
+}
+.hall-builder.hidden { display: none; }
+.hall-builder-card {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 20px 22px 18px;
+  background: var(--cream);
+  border: 3px solid #5c4a3e;
+  border-radius: 26px;
+  box-shadow: 0 16px 40px rgba(60, 40, 30, 0.28);
+  color: var(--ink);
+  font-family: "Fredoka", system-ui, sans-serif;
+}
+.hall-builder-card .map-close { position: absolute; top: 12px; right: 14px; }
+.hall-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.hall-type {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  font-family: inherit;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid #eadccb;
+  border-radius: 16px;
+  cursor: pointer;
+}
+.hall-type b { font-size: 16px; }
+.hall-type small { font-size: 11.5px; color: var(--ink-soft); text-align: center; }
+.hall-type-emoji { font-size: 30px; }
+.hall-type.on { border-color: var(--coral); background: #fff1e8; box-shadow: 0 0 0 2px rgba(255, 154, 118, 0.35); }
+.hall-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.hall-chip {
+  padding: 7px 12px;
+  font: 500 14px "Fredoka", system-ui, sans-serif;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid #eadccb;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.hall-chip.on { border-color: var(--coral); background: #fff1e8; }
+.hall-text { font-size: 16px; resize: none; }
+.mini-game {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: #fff7ec;
+}
+.mini-game canvas { display: block; width: 100%; height: 100%; }
+.mini-quit {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  padding: 8px 14px;
+  font: 600 14px "Fredoka", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--cream);
+  border: 2px solid #5c4a3e;
+  border-radius: 999px;
+  cursor: pointer;
+}
+html.touch-ui .mini-quit { top: 70px; bottom: auto; }

@@ -55,6 +55,9 @@ export class Net {
     channel.on("broadcast", { event: "hello" }, ({ payload }) => {
       if (payload?.id !== this.me.id) this.onHello?.(payload);
     });
+    channel.on("broadcast", { event: "arcade" }, ({ payload }) => {
+      if (payload?.id !== this.me.id && payload?.s === this.space) this.onArcade?.(payload);
+    });
 
     channel.subscribe((status) => {
       this._setStatus(status);
