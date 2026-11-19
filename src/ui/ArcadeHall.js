@@ -89,6 +89,7 @@ export class ArcadeHall {
   moveOnFloor(x, y, dx, dy) { return this.floor.moveOnFloor(x, y, dx, dy); }
   renderWalkers(list, dt) { this.floor.renderWalkers(list, dt); }
   clearWalkers() { this.floor.clearWalkers(); }
+  walkerTop(id) { return this.floor.walkerTop(id); }
 
   /** The game everyone in the hall can start. */
   setGame(recipe, byName) {

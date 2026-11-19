@@ -126,8 +126,20 @@ export class RoomFloor {
     return n;
   }
 
+  /** Screen point above a walker's head, for chat bubbles. */
+  walkerTop(id) {
+    return headOf(this._walkers.get(id));
+  }
+
   clearWalkers() {
     this.layer.replaceChildren();
     this._walkers.clear();
   }
+}
+
+export function headOf(walker) {
+  if (!walker?.body) return null;
+  const r = walker.body.getBoundingClientRect();
+  if (!r.width) return null;
+  return { x: r.left + r.width / 2, y: r.top };
 }

@@ -6,6 +6,8 @@ import { Net } from "./Net.js";
 import { MiniGame } from "../arcade/MiniGame.js";
 import { cleanRecipe } from "../arcade/spec.js";
 import { loadDecor } from "../ui/TrophyRoom.js";
+import { Chat, cleanChat } from "../ui/Chat.js";
+import { SpeechBubbles } from "../ui/SpeechBubbles.js";
 
 const SEND_EVERY = 0.1;
 const HEARTBEAT = 1.0;
@@ -27,6 +29,9 @@ export class Multiplayer {
     this._sendT = 0;
     this._beatT = 0;
     this._last = "";
+    this.chat = new Chat();
+    this.chat.onSend = (text) => this._say(text);
+    this.bubbles = new SpeechBubbles({ camera: game.camera, canvas: game.canvas });
 
     lobby.onJoin = ({ world, me }) => this.start(world, me);
     lobby.onGoHome = () => this.goTo(`home:${this.me.id}`);
@@ -68,7 +73,9 @@ export class Multiplayer {
     net.onInvite = ({ name, space }) => {
       this.lobby.showInvite(name, () => this.goTo(space));
     };
+    net.onChat = (p) => this._hear(p);
     net.connect();
+    this.chat.show();
     this._refreshBar();
   }
 
@@ -93,6 +100,28 @@ export class Multiplayer {
     this.game.scene.add(this.local.group);
     pibo.mesh.visible = false;
     pibo.shadow.visible = false;
+  }
+
+  _say(text) {
+    this.net?.sendChat(text);
+    this.chat.add({ name: this.me.name, text, mine: true });
+    this.bubbles.say("me", text, () => this._headOf("me"));
+  }
+
+  /** Where a speaker's bubble goes: on a room floor, or over the island sprite. */
+  _headOf(id) {
+    if (this.art) return this.art.floor.walkerTop?.(id) || null;
+    if (id === "me") return this.bubbles.meshTop(this.local ? this.local.mesh : this.game.pibo.mesh);
+    return this.bubbles.meshTop(this.remotes.get(id)?.mesh);
+  }
+
+  _hear(p) {
+    if (p.s !== this.space) return;
+    const text = cleanChat(p.text);
+    if (!text) return;
+    const name = this.net.peers.get(p.id)?.name || String(p.name || "").slice(0, 16);
+    this.chat.add({ name, text });
+    this.bubbles.say(p.id, text, () => this._headOf(p.id));
   }
 
   /** The art room changed the animal's hat or glasses. */
@@ -126,6 +155,7 @@ export class Multiplayer {
     this._last = "";
     this._beatT = HEARTBEAT;
     this.game.ui.toast("Back in the world 🌍", 1800);
+    this._spaceChanged();
     this._syncPeers();
   }
 
@@ -259,7 +289,22 @@ export class Multiplayer {
     this.net.setSpace(space || `${kind}:${this._artBase}`);
     this._last = "";
     this._beatT = HEARTBEAT;
+    this._spaceChanged();
     this._syncPeers();
+  }
+
+  /** Chat only reaches people in the same space, so say where that is. */
+  _spaceChanged() {
+    this.bubbles.clear();
+    const space = this.space;
+    let where = "the world";
+    if (space.startsWith("art:")) where = "the art room";
+    else if (space.startsWith("arcade:")) where = "the arcade";
+    else if (space.startsWith("home:")) {
+      const owner = this.roomOwner(space);
+      where = owner.mine ? "your room" : `${owner.name || "a friend"}'s room`;
+    }
+    this.chat.add({ text: `Now chatting in ${where}`, system: true });
   }
 
   _exitRoom() {
@@ -270,6 +315,7 @@ export class Multiplayer {
     this.net.setSpace(this._artBase || "world");
     this._last = "";
     this._beatT = HEARTBEAT;
+    this._spaceChanged();
     this._syncPeers();
   }
 
@@ -391,6 +437,7 @@ export class Multiplayer {
 
   update(dt) {
     if (!this.net) return;
+    this.bubbles.update(dt);
     const pibo = this.game.pibo;
     for (const avatar of this.remotes.values()) avatar.drive(dt);
     this.mini?.update(dt);

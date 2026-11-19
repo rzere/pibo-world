@@ -30,6 +30,7 @@ export class Net {
     this.onPeers = null;
     this.onMove = null;
     this.onInvite = null;
+    this.onChat = null;
     this.onStatus = null;
     this.channel = null;
   }
@@ -47,6 +48,10 @@ export class Net {
     channel.on("broadcast", { event: "move" }, ({ payload }) => {
       if (!payload || payload.id === this.me.id) return;
       this.onMove?.(payload);
+    });
+    channel.on("broadcast", { event: "chat" }, ({ payload }) => {
+      if (!payload || payload.id === this.me.id || typeof payload.text !== "string") return;
+      this.onChat?.(payload);
     });
     channel.on("broadcast", { event: "invite" }, ({ payload }) => {
       if (payload?.to !== this.me.id) return;
@@ -118,6 +123,10 @@ export class Net {
 
   sendMove(state) {
     this.send("move", { id: this.me.id, s: this.space, ...state });
+  }
+
+  sendChat(text) {
+    this.send("chat", { id: this.me.id, s: this.space, name: this.me.name, text });
   }
 
   invite(to) {

@@ -13,6 +13,7 @@ import {
 } from "../entities/piboLook.js";
 import { DEFAULT_CRITTER_LOOK, loadCritterLook, paintCritterLook, saveCritterLook } from "../entities/critterLook.js";
 import { getCharacter } from "../data/characters.js";
+import { headOf } from "./RoomFloor.js";
 
 const INK = "#3a2a24";
 
@@ -321,6 +322,11 @@ export class ArtRoom {
   clearWalkers() {
     this.floor?.replaceChildren();
     this._walkers?.clear();
+  }
+
+  /** Screen point above a walker's head, for chat bubbles. */
+  walkerTop(id) {
+    return headOf(this._walkers?.get(id));
   }
 
   layout() {

@@ -178,6 +178,7 @@ export class TrophyRoom {
   moveOnFloor(x, y, dx, dy) { return this.floor.moveOnFloor(x, y, dx, dy); }
   renderWalkers(list, dt) { this.floor.renderWalkers(list, dt); }
   clearWalkers() { this.floor.clearWalkers(); }
+  walkerTop(id) { return this.floor.walkerTop(id); }
 
   /** Draw a decoration (yours, or the owner's when visiting). */
   show(decor) {
