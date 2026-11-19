@@ -383,7 +383,7 @@ export class Game {
 
     const mushroom = this._near(p, LAYOUT.mushroomDoor, 1.45);
     if (mushroom) {
-      ui.setPrompt();
+      ui.setPrompt("Trophy room");
       if (this.input.consume("KeyE", "Enter")) this._enterTrophy();
       return;
     }

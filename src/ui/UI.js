@@ -267,8 +267,8 @@ export class UI {
   }
 
   /* prompt --------------------------------------------------------- */
-  setPrompt() {
-    if (this.el.promptLabel) this.el.promptLabel.textContent = "";
+  setPrompt(label = "Enter") {
+    if (this.el.promptLabel) this.el.promptLabel.textContent = label || "Enter";
     const phone = document.documentElement.classList.contains("phone-landscape")
       || document.documentElement.classList.contains("touch-ui");
     // Phones tap the round door button. Keyboards get the E key cap.

@@ -48,6 +48,7 @@ export class Multiplayer {
 
     const net = new Net({ world, me: this.me });
     this.net = net;
+    this._hideTakenCritters();
     net.onStatus = (status) => {
       if (status === "SUBSCRIBED") this.game.ui.toast(`Welcome to ${world} ✨`, 2200);
       else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") this.game.ui.toast("Offline for now. Still playable solo.", 2600);

@@ -11,7 +11,7 @@ import {
   paintLook,
   saveLook,
 } from "../entities/piboLook.js";
-import { loadCritterLook, paintCritterLook, saveCritterLook } from "../entities/critterLook.js";
+import { DEFAULT_CRITTER_LOOK, loadCritterLook, paintCritterLook, saveCritterLook } from "../entities/critterLook.js";
 import { getCharacter } from "../data/characters.js";
 
 const INK = "#3a2a24";
@@ -28,6 +28,8 @@ const INK = "#3a2a24";
 const STAGE = { x: 620, y: 590 };
 /** The animal drawings are small; paint them larger so hats stay crisp. */
 const CRITTER_PAINT_SCALE = 5;
+/** Headroom above the plain body, so the tallest hat fits without shrinking anyone. */
+const HAT_ROOM = 1.45;
 export class ArtRoom {
   constructor({ root, onClose, onChange } = {}) {
     this.root = root;
@@ -203,37 +205,43 @@ export class ArtRoom {
     let safeTop = margin;
     let safeRight = vw - margin;
     let safeBottom = vh - margin;
-    if (tools && tools.width > 0 && tools.height > 0) {
-      if (tools.left > vw * 0.4 && tools.top < vh * 0.4) safeRight = Math.min(safeRight, tools.left - 16);
-      else if (tools.top > vh * 0.5) safeBottom = Math.min(safeBottom, tools.top - 12);
-    }
     const stageX = ox + (imgW / 1280) * STAGE.x * cover;
     const stageY = oy + (imgH / 720) * STAGE.y * cover;
+    if (tools && tools.width > 0 && tools.height > 0) {
+      const topRight = tools.left > vw * 0.4 && tools.top < vh * 0.4;
+      // A tall column on the right narrows the stage; a short strip along the
+      // top only lowers the ceiling, and only if the character stands under it.
+      if (topRight && tools.bottom > vh * 0.6) safeRight = Math.min(safeRight, tools.left - 16);
+      else if (topRight && stageX + 80 > tools.left) safeTop = Math.max(safeTop, tools.bottom + 12);
+      else if (tools.top > vh * 0.5) safeBottom = Math.min(safeBottom, tools.top - 12);
+    }
     const feetX = Math.min(Math.max(stageX, safeLeft + 48), Math.max(safeLeft + 48, safeRight - 48));
     const feetY = Math.min(Math.max(stageY, safeTop + 96), Math.max(safeTop + 96, safeBottom - 10));
 
-    const bounds = this._bounds || {
+    // Size and place by the plain body (no hat, default hair), never by the
+    // outfit, so trying things on does not resize or shift the character.
+    const body = this._body || {
       left: 0,
       top: 0,
       right: this.canvas.width || 645,
       bottom: this.canvas.height || 838,
     };
-    const contentW = Math.max(1, bounds.right - bounds.left);
-    const contentH = Math.max(1, bounds.bottom - bounds.top);
-    const midX = (bounds.left + bounds.right) / 2;
+    const contentW = Math.max(1, body.right - body.left);
+    const contentH = Math.max(1, body.bottom - body.top);
+    const halfW = contentW / 2;
+    const midX = (body.left + body.right) / 2;
     const roomAbove = Math.max(48, feetY - safeTop);
     const roomLeft = Math.max(24, feetX - safeLeft);
     const roomRight = Math.max(24, safeRight - feetX);
-    // Leave air around the outline so the frame never chops the silhouette.
     // The animals are smaller than Pibo on the island, so they stand smaller here too.
     const fill = this.charId === "pibo" ? 0.88 : 0.6;
     const fitted = Math.min(
-      roomAbove / contentH,
-      roomLeft / Math.max(1, midX - bounds.left),
-      roomRight / Math.max(1, bounds.right - midX),
+      roomAbove / (contentH * HAT_ROOM),
+      roomLeft / (halfW * 1.3),
+      roomRight / (halfW * 1.3),
     ) * fill;
     const left = feetX - midX * fitted;
-    const top = feetY - bounds.bottom * fitted;
+    const top = feetY - body.bottom * fitted;
     this.canvas.style.width = `${this.canvas.width * fitted}px`;
     this.canvas.style.height = `${this.canvas.height * fitted}px`;
     this.canvas.style.left = `${left}px`;
@@ -246,8 +254,7 @@ export class ArtRoom {
     this.shadow.style.top = `${feetY - sh * 0.55}px`;
   }
 
-  _measure() {
-    const canvas = this.canvas;
+  _measure(canvas = this.canvas) {
     const w = canvas.width;
     const h = canvas.height;
     if (!w || !h) return null;
@@ -277,14 +284,28 @@ export class ArtRoom {
   _paint() {
     if (this.charId !== "pibo") {
       if (!this.critterSource) return;
+      const plain = paintCritterLook(this.critterSource, DEFAULT_CRITTER_LOOK, null, { scale: CRITTER_PAINT_SCALE });
       paintCritterLook(this.critterSource, this.look, this.canvas, { scale: CRITTER_PAINT_SCALE });
-      this._bounds = this._measure();
+      this._body = this._placeBody(plain);
       return;
     }
     const source = this.sources[this.view];
     if (!source) return;
+    const plain = paintLook(source, DEFAULT_LOOK, null, this.view);
     paintLook(source, this.look || DEFAULT_LOOK, this.canvas, this.view);
-    this._bounds = this._measure();
+    this._body = this._placeBody(plain);
+  }
+
+  /**
+   * Outfits only add canvas on top and evenly on both sides, so the plain
+   * body sits at the same feet and center inside the dressed canvas.
+   */
+  _placeBody(plain) {
+    const b = this._measure(plain);
+    if (!b) return null;
+    const dx = (this.canvas.width - plain.width) / 2;
+    const dy = this.canvas.height - plain.height;
+    return { left: b.left + dx, right: b.right + dx, top: b.top + dy, bottom: b.bottom + dy };
   }
 
   _mark() {
