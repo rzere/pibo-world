@@ -2516,3 +2516,14 @@ html.phone-landscape .qr-btn { bottom: auto; top: max(58px, calc(env(safe-area-i
   background: #fff;
   border-radius: 12px;
 }
+
+/* The bubble layer covers the screen; "#ui > *" would make it swallow every click. */
+#ui > .speech-layer { pointer-events: none; }
+#ui > .chat { pointer-events: none; }
+.chat-quick { flex-wrap: wrap; overflow: visible; }
+/* Sit the bubble's tail just above the head. */
+.speech { transform: translate(-50%, calc(-100% - 14px)); }
+@keyframes speech-pop {
+  from { transform: translate(-50%, calc(-100% - 8px)) scale(0.7); }
+  to { transform: translate(-50%, calc(-100% - 14px)) scale(1); }
+}

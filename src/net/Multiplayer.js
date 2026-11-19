@@ -9,6 +9,8 @@ import { loadDecor } from "../ui/TrophyRoom.js";
 import { Chat, cleanChat } from "../ui/Chat.js";
 import { SpeechBubbles } from "../ui/SpeechBubbles.js";
 
+/** Pibo's pot fills only the bottom of his picture; his head is just above the plane's middle. */
+const PIBO_HEAD = 0.05;
 const SEND_EVERY = 0.1;
 const HEARTBEAT = 1.0;
 /** Art-room floor units per second (picture pixels / 100). */
@@ -112,8 +114,11 @@ export class Multiplayer {
   _headOf(id) {
     if (this.mini) return null;
     if (this.art) return this.art.floor.walkerTop?.(id) || null;
-    if (id === "me") return this.bubbles.meshTop(this.local ? this.local.mesh : this.game.pibo.mesh);
-    return this.bubbles.meshTop(this.remotes.get(id)?.mesh);
+    if (id === "me") {
+      return this.local ? this.bubbles.meshTop(this.local.mesh) : this.bubbles.meshTop(this.game.pibo.mesh, PIBO_HEAD);
+    }
+    const avatar = this.remotes.get(id);
+    return this.bubbles.meshTop(avatar?.mesh, avatar?.charId === "pibo" ? PIBO_HEAD : 0.5);
   }
 
   _hear(p) {

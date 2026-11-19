@@ -41,9 +41,9 @@ export class SpeechBubbles {
   }
 
   /** Screen point at the top of an island sprite, or null if it is hidden. */
-  meshTop(mesh) {
+  meshTop(mesh, top = 0.5) {
     if (!mesh || !shown(mesh)) return null;
-    const v = this._v.set(0, (mesh.geometry.parameters?.height || 1) * 0.5, 0);
+    const v = this._v.set(0, (mesh.geometry.parameters?.height || 1) * top, 0);
     mesh.localToWorld(v);
     v.project(this.camera);
     const rect = this.canvas.getBoundingClientRect();
