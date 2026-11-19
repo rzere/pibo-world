@@ -18,6 +18,8 @@ export const LAYOUT = {
   library: { x: -2.713, z: -2.612 },
   libraryDoor: { x: -2.725, z: 0.4 },
   cottageDoor: { x: 3.9, z: 1.85 },
+  // Grass just in front of the mushroom door. The footprint ends at z 4.1.
+  mushroomDoor: { x: -3.85, z: 4.85 },
   companion: { x: -11.5, z: 1.5 },
   pino: { x: -10.5, z: 2.5 },
 };

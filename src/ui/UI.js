@@ -7,6 +7,7 @@ import { WorldMap } from "./WorldMap.js";
 import { ArcadeEditor } from "./ArcadeEditor.js";
 import { LibraryPanel } from "./LibraryPanel.js";
 import { ArtRoom } from "./ArtRoom.js";
+import { TrophyRoom } from "./TrophyRoom.js";
 
 const DOOR_ICON = `<svg class="action-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 8h18a3 3 0 0 1 3 3v29H11V11a3 3 0 0 1 3-3z" fill="#fff6ee" stroke="#3a2a24" stroke-width="3.5" stroke-linejoin="round"/><circle cx="29" cy="26" r="2.2" fill="#3a2a24"/></svg>`;
 const CLOSE_ICON = `<svg class="action-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 16l16 16M32 16L16 32" fill="none" stroke="#3a2a24" stroke-width="4" stroke-linecap="round"/></svg>`;
@@ -93,6 +94,14 @@ export class UI {
         this.onArtLeave?.();
       },
       onChange: (look) => this.onArtChange?.(look),
+    });
+    this.trophy = new TrophyRoom({
+      root: document.getElementById("trophy-overlay"),
+      onClose: () => {
+        document.documentElement.classList.remove("in-trophy");
+        this._syncActionBtn();
+        this.onTrophyLeave?.();
+      },
     });
     this.lastIdea = null;
 
@@ -197,6 +206,10 @@ export class UI {
       this.closeArt();
       return;
     }
+    if (this.isTrophyOpen) {
+      this.onTrophyLeave?.();
+      return;
+    }
     if (this.isLibraryOpen) {
       this.closeLibrary();
       return;
@@ -222,7 +235,7 @@ export class UI {
   _syncActionBtn() {
     const btn = this.el.actionBtn;
     if (!btn) return;
-    if (this.isArtOpen || this.isLibraryOpen || this.isArcadeOpen || this.isMapOpen || this.isIdeaOpen || this.isStudioOpen || this.isModalOpen) {
+    if (this.isArtOpen || this.isTrophyOpen || this.isLibraryOpen || this.isArcadeOpen || this.isMapOpen || this.isIdeaOpen || this.isStudioOpen || this.isModalOpen) {
       btn.innerHTML = CLOSE_ICON;
       btn.classList.add("close-mode");
       btn.classList.remove("ready");
@@ -347,6 +360,7 @@ export class UI {
     this.closeArcade();
     this.closeLibrary();
     this.closeArt();
+    this.closeTrophy();
   }
 
   /* library -------------------------------------------------------- */
@@ -384,6 +398,26 @@ export class UI {
   closeArt() {
     this.art?.close();
     document.documentElement.classList.remove("in-art");
+    this._syncActionBtn();
+  }
+
+  /* trophy room ---------------------------------------------------- */
+  get isTrophyOpen() {
+    return !!this.trophy?.isOpen;
+  }
+
+  openTrophy() {
+    this.closeMap();
+    this.closeCollection();
+    this.trophy?.open();
+    document.documentElement.classList.add("in-trophy");
+    this.hidePrompt();
+    this._syncActionBtn();
+  }
+
+  closeTrophy() {
+    this.trophy?.close();
+    document.documentElement.classList.remove("in-trophy");
     this._syncActionBtn();
   }
 
@@ -431,7 +465,7 @@ export class UI {
       marker.classList.add("hidden");
       marker.setAttribute("aria-hidden", "true");
     }
-    const indoors = !!hidden && (this.isStudioOpen || this.isArcadeOpen || this.isLibraryOpen || this.isArtOpen);
+    const indoors = !!hidden && (this.isStudioOpen || this.isArcadeOpen || this.isLibraryOpen || this.isArtOpen || this.isTrophyOpen);
     this.el.lighthouseGo?.classList.toggle("hidden", indoors);
   }
 

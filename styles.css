@@ -269,8 +269,17 @@ html, body {
 .in-art .arcade-go-btn,
 .in-art .library-go-btn,
 .in-art .lighthouse-marker,
-.in-art .prompt { display: none !important; }
-.in-art .mobile-controls { display: none !important; }
+.in-art .prompt,
+.in-trophy .collection-btn,
+.in-trophy .collection,
+.in-trophy .map-btn,
+.in-trophy .lighthouse-go,
+.in-trophy .arcade-go-btn,
+.in-trophy .library-go-btn,
+.in-trophy .lighthouse-marker,
+.in-trophy .prompt { display: none !important; }
+.in-art .mobile-controls,
+.in-trophy .mobile-controls { display: none !important; }
 .in-studio .toast { bottom: 40%; }
 .in-studio .joystick {
   visibility: hidden;
@@ -1702,3 +1711,59 @@ html.phone-landscape .art-tools {
   overflow: auto;
 }
 html.phone-landscape .art-row { gap: 4px; }
+
+/* Trophy room. The mushroom interior fills the window. Prizes sit on top. */
+.trophy-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: auto;
+  overflow: hidden;
+}
+.trophy-overlay.hidden { display: none; }
+.trophy-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+.trophy-slot {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  animation: trophy-bob 3.2s ease-in-out infinite;
+}
+.trophy-sprite {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+.trophy-shadow {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: 1%;
+  height: 14%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(58, 42, 36, 0.28) 0%, rgba(58, 42, 36, 0) 72%);
+  z-index: -1;
+  pointer-events: none;
+}
+.trophy-slot.is-locked {
+  animation: none;
+  opacity: 0.42;
+  filter: saturate(0.2) brightness(1.05);
+}
+@keyframes trophy-bob {
+  0%, 100% { transform: translate(-50%, -100%); }
+  50% { transform: translate(-50%, calc(-100% - 5px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trophy-slot { animation: none; }
+}
