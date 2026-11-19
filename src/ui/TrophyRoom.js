@@ -1,4 +1,5 @@
 import { RoomFloor } from "./RoomFloor.js";
+import { earnedTrophies } from "../market/progress.js";
 
 /**
  * Your own room, inside the mushroom house. One painted interior with a few
@@ -13,6 +14,13 @@ const TROPHIES = [
   { id: "star", src: "assets/painted/trophies/medal-star.png", x: 255, y: 400, w: 62, delay: "0s" },
   { id: "gold", src: "assets/painted/trophies/cup-gold.png", x: 640, y: 492, w: 124, delay: "0.6s" },
   { id: "rosette", src: "assets/painted/trophies/rosette.png", x: 908, y: 404, w: 74, delay: "0.8s" },
+];
+
+/** Pibo Market trophies stand in the window box, one per finished level. */
+const MARKET_SPOTS = [
+  { x: 548, y: 404, w: 64 },
+  { x: 640, y: 400, w: 64 },
+  { x: 732, y: 404, w: 64 },
 ];
 
 /** Free spots for decoration: two stools, two shelf ends. */
@@ -117,6 +125,16 @@ export class TrophyRoom {
       this.root.appendChild(node);
       this.placed.push({ ...t, el: node });
     }
+    this.market = MARKET_SPOTS.map((spot) => {
+      const node = el("div", "trophy-slot hidden");
+      const img = el("img", "trophy-sprite");
+      img.alt = "";
+      img.draggable = false;
+      node.append(img, el("span", "trophy-shadow"));
+      this.root.appendChild(node);
+      return { ...spot, el: node, img };
+    });
+
     this.spots = SPOTS.map((s) => {
       const node = el("div", "room-thing");
       this.root.appendChild(node);
@@ -159,6 +177,15 @@ export class TrophyRoom {
     this.decorBtn.classList.toggle("hidden", !mine);
     this.panel.classList.add("hidden");
     this.show(mine ? this.decor : cleanDecor(decor));
+    const earned = mine ? earnedTrophies() : [];
+    this.market.forEach((spot, i) => {
+      const t = earned[i];
+      spot.el.classList.toggle("hidden", !t);
+      if (t) {
+        spot.img.src = t.src;
+        spot.el.title = t.title;
+      }
+    });
   }
 
   close() {
@@ -259,6 +286,11 @@ export class TrophyRoom {
     const ox = (vw - 1280 * cover) / 2;
     const oy = (vh - 720 * cover) / 2;
     for (const t of this.placed) {
+      t.el.style.left = `${ox + t.x * cover}px`;
+      t.el.style.top = `${oy + t.y * cover}px`;
+      t.el.style.width = `${t.w * cover}px`;
+    }
+    for (const t of this.market) {
       t.el.style.left = `${ox + t.x * cover}px`;
       t.el.style.top = `${oy + t.y * cover}px`;
       t.el.style.width = `${t.w * cover}px`;

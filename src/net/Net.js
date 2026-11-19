@@ -86,6 +86,7 @@ export class Net {
       char: this.me.char,
       look: this.me.look || null,
       room: this.me.room || null,
+      stall: this.me.stall || null,
       space: this.space,
       at: Date.now(),
     });
@@ -97,7 +98,7 @@ export class Net {
     for (const [key, metas] of Object.entries(state)) {
       if (key === this.me.id) continue;
       const meta = metas[metas.length - 1];
-      if (meta) next.set(key, { id: key, name: meta.name, char: meta.char, look: meta.look || null, room: meta.room || null, space: meta.space });
+      if (meta) next.set(key, { id: key, name: meta.name, char: meta.char, look: meta.look || null, room: meta.room || null, stall: meta.stall || null, space: meta.space });
     }
     this.peers = next;
     this.onPeers?.(next);
@@ -108,8 +109,9 @@ export class Net {
     this._track();
   }
 
-  setProfile({ name, char, look, room }) {
+  setProfile({ name, char, look, room, stall }) {
     if (room) this.me.room = room;
+    if (stall) this.me.stall = stall;
     if (name) this.me.name = name;
     if (char) this.me.char = char;
     if (look) this.me.look = look;

@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "categories": [
+    { "id": "fruit", "label": "Fruit" },
+    { "id": "vegetables", "label": "Vegetables" },
+    { "id": "bakery", "label": "Bakery" },
+    { "id": "dairy", "label": "Dairy" }
+  ],
+  "items": [
+    { "id": "apple", "word": "apple", "plural": "apples", "article": "an", "countable": true, "category": "fruit", "price": 1, "image": "assets/market/items/apple.svg", "audio": null },
+    { "id": "banana", "word": "banana", "plural": "bananas", "article": "a", "countable": true, "category": "fruit", "price": 1, "image": "assets/market/items/banana.svg", "audio": null },
+    { "id": "orange", "word": "orange", "plural": "oranges", "article": "an", "countable": true, "category": "fruit", "price": 1, "image": "assets/market/items/orange.svg", "audio": null },
+    { "id": "pear", "word": "pear", "plural": "pears", "article": "a", "countable": true, "category": "fruit", "price": 1, "image": "assets/market/items/pear.svg", "audio": null },
+    { "id": "juice", "word": "juice", "plural": "juice", "article": "some", "countable": false, "category": "fruit", "price": 3, "image": "assets/market/items/juice.svg", "audio": null },
+    { "id": "carrot", "word": "carrot", "plural": "carrots", "article": "a", "countable": true, "category": "vegetables", "price": 1, "image": "assets/market/items/carrot.svg", "audio": null },
+    { "id": "tomato", "word": "tomato", "plural": "tomatoes", "article": "a", "countable": true, "category": "vegetables", "price": 1, "image": "assets/market/items/tomato.svg", "audio": null },
+    { "id": "bread", "word": "bread", "plural": "bread", "article": "some", "countable": false, "category": "bakery", "price": 2, "image": "assets/market/items/bread.svg", "audio": null },
+    { "id": "cookie", "word": "cookie", "plural": "cookies", "article": "a", "countable": true, "category": "bakery", "price": 1, "image": "assets/market/items/cookie.svg", "audio": null },
+    { "id": "milk", "word": "milk", "plural": "milk", "article": "some", "countable": false, "category": "dairy", "price": 2, "image": "assets/market/items/milk.svg", "audio": null },
+    { "id": "cheese", "word": "cheese", "plural": "cheese", "article": "some", "countable": false, "category": "dairy", "price": 3, "image": "assets/market/items/cheese.svg", "audio": null },
+    { "id": "egg", "word": "egg", "plural": "eggs", "article": "an", "countable": true, "category": "dairy", "price": 1, "image": "assets/market/items/egg.svg", "audio": null }
+  ],
+  "shelves": {
+    "fruit": ["apple", "banana", "orange", "pear", "juice", "apple"],
+    "vegetables": ["carrot", "tomato", "tomato", "carrot", "carrot", "tomato"],
+    "bakery": ["bread", "cookie", "cookie", "bread", "bread", "cookie"],
+    "dairy": ["milk", "cheese", "egg", "milk", "cheese", "egg"]
+  },
+  "coins": [1, 2, 5],
+  "levels": [
+    {
+      "id": 1,
+      "title": "Find it",
+      "skill": "words",
+      "lists": 2,
+      "itemsPerList": 3,
+      "trophy": "assets/painted/trophies/cup-bronze.png"
+    },
+    {
+      "id": 2,
+      "title": "Ask for it",
+      "skill": "sentences",
+      "lists": 2,
+      "itemsPerList": 2,
+      "maxQuantity": 3,
+      "trophy": "assets/painted/trophies/cup-silver.png"
+    },
+    {
+      "id": 3,
+      "title": "Run your stall",
+      "skill": "create",
+      "lists": 1,
+      "stallItems": 4,
+      "maxPrice": 5,
+      "trophy": "assets/painted/trophies/medal-blue.png"
+    }
+  ]
+}

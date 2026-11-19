@@ -6,6 +6,7 @@ import { Net } from "./Net.js";
 import { MiniGame } from "../arcade/MiniGame.js";
 import { cleanRecipe } from "../arcade/spec.js";
 import { loadDecor } from "../ui/TrophyRoom.js";
+import { loadStall } from "../market/progress.js";
 import { Chat, cleanChat } from "../ui/Chat.js";
 import { SpeechBubbles } from "../ui/SpeechBubbles.js";
 
@@ -51,7 +52,7 @@ export class Multiplayer {
   }
 
   start(world, me) {
-    this.me = { ...me, look: me.char === "pibo" ? null : loadCritterLook(me.char), room: loadDecor() };
+    this.me = { ...me, look: me.char === "pibo" ? null : loadCritterLook(me.char), room: loadDecor(), stall: loadStall() };
     this._useCharacter(me.char);
     this._spawn();
     this.game.started = true;
@@ -179,6 +180,17 @@ export class Multiplayer {
 
   exitHome() {
     if (this.art?.kind === "home") this._exitRoom();
+  }
+
+  /** Your Pibo Market stall, so friends in this world can shop there. */
+  setStall(stall) {
+    if (!this.me) return;
+    this.me.stall = stall;
+    this.net?.setProfile({ stall });
+  }
+
+  friendStalls() {
+    return [...(this.net?.peers.values() || [])].filter((p) => p.stall).map((p) => ({ name: p.name, stall: p.stall }));
   }
 
   setDecor(decor) {

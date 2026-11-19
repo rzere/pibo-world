@@ -12,6 +12,8 @@ import { GardenSystem } from "../systems/GardenSystem.js";
 import { TvStudio } from "../systems/TvStudio.js";
 import { ArcadeRoom } from "../systems/ArcadeRoom.js";
 import { ArcadeHall } from "../ui/ArcadeHall.js";
+import { MarketRoom } from "../ui/MarketRoom.js";
+import { getCharacter } from "../data/characters.js";
 import { LibraryRoom } from "../systems/LibraryRoom.js";
 import { Pibo } from "../entities/Pibo.js";
 import { Critter } from "../entities/Critter.js";
@@ -132,6 +134,16 @@ export class Game {
       onStart: () => this.multiplayer?.startGame(),
       getPlayers: () => this.multiplayer?.roomPlayers() || [],
     });
+    this.market = new MarketRoom({
+      onClose: () => this._leaveMarket(),
+      getPlayer: () => {
+        const me = this.multiplayer?.me;
+        return { name: me?.name || "Pibo", thumb: getCharacter(me?.char || "pibo").thumb };
+      },
+      getFriendStalls: () => this.multiplayer?.friendStalls() || [],
+      onStall: (stall) => this.multiplayer?.setStall(stall),
+      onTrophy: () => this.ui.toast("New trophy in your mushroom house 🏆", 2600),
+    });
     this.libraryRoom = new LibraryRoom();
     this.ui.onLibraryLeave = () => this._leaveLibrary();
     this.ui.onArtLeave = () => this._leaveArt();
@@ -228,6 +240,11 @@ export class Game {
         this._enterTrophy();
         return;
       }
+      if (q.has("market")) {
+        this._goToMarket();
+        this._enterMarket();
+        return;
+      }
       if (!q.has("studio") && !q.has("dock")) return;
       const pad = LAYOUT.lighthousePad;
       const face = this._faceToward(pad, LAYOUT.lighthouse);
@@ -271,6 +288,12 @@ export class Game {
 
     if (this.ui.isTrophyOpen) {
       this._handleTrophyInteraction();
+      this.input.endFrame();
+      return;
+    }
+
+    if (this.market.isOpen) {
+      if (this.input.consume("Escape") && !this.market.back()) this._leaveMarket();
       this.input.endFrame();
       return;
     }
@@ -402,6 +425,12 @@ export class Game {
     if (mushroom) {
       ui.setPrompt("My room");
       if (this.input.consume("KeyE", "Enter")) this._enterTrophy();
+      return;
+    }
+
+    if (this._near(p, LAYOUT.marketDoor, 1.6)) {
+      ui.setPrompt("Pibo Market");
+      if (this.input.consume("KeyE", "Enter")) this._enterMarket();
       return;
     }
 
@@ -542,6 +571,7 @@ export class Game {
     if (this.ui.isArtOpen) this._leaveArt("switch");
     if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
     if (this.hall?.isOpen) this._leaveArcade("switch");
+    if (this.market?.isOpen) this._leaveMarket("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     this.ui.closeMap();
@@ -596,6 +626,7 @@ export class Game {
     if (this.libraryRoom.active) this._leaveLibrary("switch");
     if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
     if (this.hall?.isOpen) this._leaveArcade("switch");
+    if (this.market?.isOpen) this._leaveMarket("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     this.started = true;
@@ -623,6 +654,7 @@ export class Game {
     if (this.libraryRoom.active) this._leaveLibrary("switch");
     if (this.ui.isArtOpen) this._leaveArt("switch");
     if (this.hall?.isOpen) this._leaveArcade("switch");
+    if (this.market?.isOpen) this._leaveMarket("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     this.started = true;
@@ -643,6 +675,38 @@ export class Game {
     this._frameCameraOnPibo();
   }
 
+  _goToMarket() {
+    this._travelTo(LAYOUT.marketDoor, LAYOUT.market);
+  }
+
+  _enterMarket() {
+    if (this.ui.isIdeaOpen) this.ui.closeIdeas();
+    if (this.studio.active) this._leaveStudio();
+    if (this.libraryRoom.active) this._leaveLibrary("switch");
+    if (this.ui.isArtOpen) this._leaveArt("switch");
+    if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
+    if (this.hall?.isOpen) this._leaveArcade("switch");
+    this.ui.closeModals();
+    this.ui.closeCollection();
+    this.ui.closeMap();
+    this.started = true;
+    this.ui.hideIntro();
+    this.ui.hidePrompt();
+    this.pibo.setVisible(false);
+    this.market.open();
+  }
+
+  _leaveMarket(reason = "exit") {
+    if (!this.market?.isOpen) return;
+    this.market.close();
+    const pad = LAYOUT.marketDoor;
+    const face = this._faceToward(pad, LAYOUT.market);
+    this.pibo.setVisible(true);
+    this.pibo.placeAt(pad.x, pad.z, face.x, face.z, this.collision);
+    this._frameCameraOnPibo();
+    if (reason === "exit") this.ui.toast("Back outside Pibo Market", 1600);
+  }
+
   _handleLibraryInteraction() {
     if (this.input.consume("Escape")) this._leaveLibrary();
   }
@@ -653,6 +717,7 @@ export class Game {
     if (this.ui.isArtOpen) this._leaveArt("switch");
     if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
     if (this.hall?.isOpen) this._leaveArcade("switch");
+    if (this.market?.isOpen) this._leaveMarket("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     this.started = true;
@@ -685,6 +750,7 @@ export class Game {
     if (this.ui.isArtOpen) this._leaveArt("switch");
     if (this.ui.isTrophyOpen) this._leaveTrophy("switch");
     if (this.hall?.isOpen) this._leaveArcade("switch");
+    if (this.market?.isOpen) this._leaveMarket("switch");
     this.ui.closeModals();
     this.ui.closeCollection();
     const face = this._faceToward(pad, look);
@@ -713,7 +779,7 @@ export class Game {
 
   _updateLighthouseGuide() {
     // Travel buttons stay in the HUD. Nothing is drawn on the island.
-    const indoors = this.studio.active || this.hall?.isOpen || this.libraryRoom.active || this.ui.isArtOpen || this.ui.isTrophyOpen;
+    const indoors = this.studio.active || this.hall?.isOpen || this.market?.isOpen || this.libraryRoom.active || this.ui.isArtOpen || this.ui.isTrophyOpen;
     this.ui.setLighthouseGuide({ hidden: indoors });
   }
 
@@ -760,6 +826,7 @@ export class Game {
     this.libraryRoom?.resize(w, h);
     this.ui.art?.layout();
     this.ui.trophy?.layout();
+    this.market?.layout();
     this._updateCamera(0);
   }
 }

@@ -20,6 +20,9 @@ export const LAYOUT = {
   cottageDoor: { x: 3.9, z: 1.85 },
   // Grass just in front of the mushroom door. The footprint ends at z 4.1.
   mushroomDoor: { x: -3.85, z: 4.85 },
+  // Path in front of the striped stall. The footprint ends at z 1.3.
+  market: { x: 9.85, z: -0.5 },
+  marketDoor: { x: 9.2, z: 3.9 },
   companion: { x: -11.5, z: 1.5 },
   pino: { x: -10.5, z: 2.5 },
 };
