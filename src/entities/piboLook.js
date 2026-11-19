@@ -153,6 +153,11 @@ export function onHairSprite(fn) {
   return () => hairListeners.delete(fn);
 }
 
+/** The loaded PNG for a hair or hat id, or null while it is still loading. */
+export function accessoryImage(id) {
+  return spriteImages.get(id) || null;
+}
+
 export function loadLook() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "null");

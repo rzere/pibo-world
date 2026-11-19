@@ -1,5 +1,6 @@
 import { Avatar } from "../entities/Avatar.js";
 import { getCharacter } from "../data/characters.js";
+import { cleanCritterLook, loadCritterLook } from "../entities/critterLook.js";
 import { LAYOUT } from "../world/layout.js";
 import { Net } from "./Net.js";
 
@@ -38,14 +39,14 @@ export class Multiplayer {
   }
 
   start(world, me) {
-    this.me = me;
+    this.me = { ...me, look: me.char === "pibo" ? null : loadCritterLook(me.char) };
     this._useCharacter(me.char);
     this._spawn();
     this.game.started = true;
     this.game.ui.hideIntro?.();
     this.game.canvas.focus();
 
-    const net = new Net({ world, me });
+    const net = new Net({ world, me: this.me });
     this.net = net;
     net.onStatus = (status) => {
       if (status === "SUBSCRIBED") this.game.ui.toast(`Welcome to ${world} ✨`, 2200);
@@ -66,6 +67,7 @@ export class Multiplayer {
 
   _useCharacter(charId) {
     const pibo = this.game.pibo;
+    this.game.ui.art?.setCharacter(charId);
     if (charId === "pibo") {
       pibo.mesh.visible = true;
       pibo.shadow.visible = true;
@@ -80,9 +82,18 @@ export class Multiplayer {
       x: pibo.x,
       z: pibo.z,
     });
+    this.local.setLook(this.me.look);
     this.game.scene.add(this.local.group);
     pibo.mesh.visible = false;
     pibo.shadow.visible = false;
+  }
+
+  /** The art room changed the animal's hat or glasses. */
+  setLook(look) {
+    if (!this.me || this.me.char === "pibo") return;
+    this.me.look = look;
+    this.local?.setLook(look);
+    this.net?.setProfile({ look });
   }
 
   _spawn() {
@@ -114,6 +125,7 @@ export class Multiplayer {
       const p = peers.get(id);
       if (!p || p.space !== this.space || p.char !== avatar.charId) {
         this.game.scene.remove(avatar.group);
+        avatar.dispose();
         this.remotes.delete(id);
       }
     }
@@ -134,10 +146,17 @@ export class Multiplayer {
       this.remotes.set(p.id, avatar);
     }
     for (const [id, avatar] of this.remotes) {
-      const name = peers.get(id)?.name;
+      const p = peers.get(id);
+      const name = p?.name;
       if (name && name !== avatar.peerName) {
         avatar.peerName = name;
         avatar.setName(name);
+      }
+      const look = p?.look && p.char !== "pibo" ? cleanCritterLook(p.look) : null;
+      const lookKey = JSON.stringify(look);
+      if (lookKey !== avatar.lookKey) {
+        avatar.lookKey = lookKey;
+        avatar.setLook(look);
       }
     }
     this._hideTakenCritters();

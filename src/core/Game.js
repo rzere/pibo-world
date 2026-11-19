@@ -128,7 +128,10 @@ export class Game {
     this.libraryRoom = new LibraryRoom();
     this.ui.onLibraryLeave = () => this._leaveLibrary();
     this.ui.onArtLeave = () => this._leaveArt();
-    this.ui.onArtChange = (look) => this.pibo?.applyLook(look);
+    this.ui.onArtChange = (look, charId) => {
+      if (charId === "pibo") this.pibo?.applyLook(look);
+      else this.multiplayer?.setLook(look);
+    };
     this.ui.onTrophyLeave = () => this._leaveTrophy();
   }
 

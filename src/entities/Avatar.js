@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { Critter } from "./Critter.js";
+import { critterLookPad, isDressed, paintCritterLook } from "./critterLook.js";
+import { onHairSprite } from "./piboLook.js";
 
 const LIFT = 0.82;
 const LABEL_GAP = 0.2;
@@ -22,6 +24,64 @@ export class Avatar extends Critter {
     this.label.position.y = this.height + LABEL_GAP;
     this.pivot.add(this.label);
     this.bubble.visible = false;
+    this.baseFrames = this.frames.slice();
+    this.baseWidth = this.width;
+    this.baseHeight = this.height;
+    this.look = null;
+    this._painted = [];
+    this._offSprite = onHairSprite(() => {
+      if (isDressed(this.look)) this.setLook(this.look);
+    });
+  }
+
+  /**
+   * Hat and glasses, painted into every walk frame. All eight frames share
+   * one padded size, so the animal never jumps when the frame changes.
+   */
+  setLook(look) {
+    this.look = look;
+    for (const tex of this._painted) tex.dispose();
+    this._painted = [];
+    const sources = this.baseFrames.map((tex) => tex?.image || null);
+    const base = sources.find(Boolean);
+    let frames = this.baseFrames;
+    let sx = 1;
+    let sy = 1;
+    if (base && isDressed(look)) {
+      const pad = { x: 0, y: 0 };
+      for (const src of sources) {
+        if (!src) continue;
+        const p = critterLookPad(src, look);
+        pad.x = Math.max(pad.x, p.x);
+        pad.y = Math.max(pad.y, p.y);
+      }
+      frames = sources.map((src) => {
+        if (!src) return null;
+        const tex = new THREE.CanvasTexture(paintCritterLook(src, look, null, { pad }));
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.LinearFilter;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        this._painted.push(tex);
+        return tex;
+      });
+      const w = base.width || base.naturalWidth;
+      const h = base.height || base.naturalHeight;
+      sx = (w + pad.x * 2) / w;
+      sy = (h + pad.y) / h;
+    }
+    this.frames = frames;
+    this.width = this.baseWidth * sx;
+    this.height = this.baseHeight * sy;
+    this.mesh.geometry.dispose();
+    this.mesh.geometry = new THREE.PlaneGeometry(this.width, this.height);
+    this.material.map = null;
+    this._showFrame();
+  }
+
+  dispose() {
+    this._offSprite?.();
+    for (const tex of this._painted) tex.dispose();
+    this._painted = [];
   }
 
   setName(name) {

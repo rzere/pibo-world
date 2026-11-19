@@ -11,26 +11,34 @@ import {
   paintLook,
   saveLook,
 } from "../entities/piboLook.js";
+import { loadCritterLook, paintCritterLook, saveCritterLook } from "../entities/critterLook.js";
+import { getCharacter } from "../data/characters.js";
 
 const INK = "#3a2a24";
 
 /**
- * Full-screen art room. The cottage studio fills the window. Pibo stands
- * on the rug, with the whole silhouette inside the frame. Choices are
+ * Full-screen art room. The cottage studio fills the window. The character
+ * the player joined as stands on the rug, with the whole silhouette inside
+ * the frame. Pibo can change pot, hair, hat, scarf and glasses; an animal
+ * keeps its own drawing and only tries on hats and glasses. Choices are
  * icons, saved for the island too.
  *
  * STAGE is the spot on art-room.jpg (1280×720) where the feet stand.
  */
 const STAGE = { x: 620, y: 590 };
+/** The animal drawings are small; paint them larger so hats stay crisp. */
+const CRITTER_PAINT_SCALE = 5;
 export class ArtRoom {
   constructor({ root, onClose, onChange } = {}) {
     this.root = root;
     this.onClose = onClose || null;
     this.onChange = onChange || null;
     this.isOpen = false;
+    this.charId = "pibo";
     this.look = loadLook();
     this.view = "front";
     this.sources = {};
+    this.critterSource = null;
     this._build();
     this._loadSources();
     onHairSprite(() => {
@@ -68,14 +76,42 @@ export class ArtRoom {
     back.addEventListener("click", () => this.onClose?.());
     this.root.appendChild(back);
 
-    const tools = document.createElement("div");
-    tools.className = "art-tools";
-    tools.appendChild(this._row(POTS, "pot", potIcon));
-    tools.appendChild(this._row(HAIRS, "hair", hairIcon));
+    this.tools = document.createElement("div");
+    this.tools.className = "art-tools";
+    this.root.appendChild(this.tools);
+    this._buildTools();
+  }
+
+  _buildTools() {
+    const tools = this.tools;
+    tools.replaceChildren();
+    if (this.charId === "pibo") {
+      tools.appendChild(this._row(POTS, "pot", potIcon));
+      tools.appendChild(this._row(HAIRS, "hair", hairIcon));
+    }
     tools.appendChild(this._row(HATS, "hat", hatIcon));
-    tools.appendChild(this._row(SCARVES, "scarf", scarfIcon));
+    if (this.charId === "pibo") tools.appendChild(this._row(SCARVES, "scarf", scarfIcon));
     tools.appendChild(this._row(GLASSES, "glasses", glassesIcon));
-    this.root.appendChild(tools);
+  }
+
+  /** Who the player joined as. Pibo, or one of the animals. */
+  setCharacter(id) {
+    const next = getCharacter(id).id;
+    if (next === this.charId) return;
+    this.charId = next;
+    this.look = this._loadLook();
+    this.critterSource = null;
+    this._buildTools();
+    this._loadSources();
+    if (this.isOpen) {
+      this._paint();
+      this._mark();
+      this.layout();
+    }
+  }
+
+  _loadLook() {
+    return this.charId === "pibo" ? loadLook() : loadCritterLook(this.charId);
   }
 
   _row(items, key, icon) {
@@ -97,19 +133,35 @@ export class ArtRoom {
 
   _pick(key, id) {
     this.look = { ...this.look, [key]: id };
-    saveLook(this.look);
+    if (this.charId === "pibo") saveLook(this.look);
+    else saveCritterLook(this.charId, this.look);
     this._paint();
     this.layout();
     this._mark();
-    this.onChange?.(this.look);
+    this.onChange?.(this.look, this.charId);
   }
 
   _loadSources() {
+    if (this.charId !== "pibo") {
+      const charId = this.charId;
+      const img = new Image();
+      img.onload = () => {
+        if (this.charId !== charId) return;
+        this.critterSource = img;
+        if (this.isOpen) {
+          this._paint();
+          this.layout();
+        }
+      };
+      img.src = getCharacter(charId).def.frames[0];
+      return;
+    }
     for (const [view, url] of Object.entries(FACE_SRC)) {
+      if (this.sources[view]) continue;
       const img = new Image();
       img.onload = () => {
         this.sources[view] = img;
-        if (this.isOpen && this.view === view) {
+        if (this.isOpen && this.charId === "pibo" && this.view === view) {
           this._paint();
           this.layout();
         }
@@ -121,7 +173,7 @@ export class ArtRoom {
   open(view = this.view) {
     if (FACE_SRC[view]) this.view = view;
     this.isOpen = true;
-    this.look = loadLook();
+    this.look = this._loadLook();
     this.root.classList.remove("hidden");
     this.root.setAttribute("aria-hidden", "false");
     this._paint();
@@ -173,11 +225,13 @@ export class ArtRoom {
     const roomLeft = Math.max(24, feetX - safeLeft);
     const roomRight = Math.max(24, safeRight - feetX);
     // Leave air around the outline so the frame never chops the silhouette.
+    // The animals are smaller than Pibo on the island, so they stand smaller here too.
+    const fill = this.charId === "pibo" ? 0.88 : 0.6;
     const fitted = Math.min(
       roomAbove / contentH,
       roomLeft / Math.max(1, midX - bounds.left),
       roomRight / Math.max(1, bounds.right - midX),
-    ) * 0.88;
+    ) * fill;
     const left = feetX - midX * fitted;
     const top = feetY - bounds.bottom * fitted;
     this.canvas.style.width = `${this.canvas.width * fitted}px`;
@@ -221,6 +275,12 @@ export class ArtRoom {
   }
 
   _paint() {
+    if (this.charId !== "pibo") {
+      if (!this.critterSource) return;
+      paintCritterLook(this.critterSource, this.look, this.canvas, { scale: CRITTER_PAINT_SCALE });
+      this._bounds = this._measure();
+      return;
+    }
     const source = this.sources[this.view];
     if (!source) return;
     paintLook(source, this.look || DEFAULT_LOOK, this.canvas, this.view);

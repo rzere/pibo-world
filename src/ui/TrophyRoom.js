@@ -1,4 +1,5 @@
 import { DEFAULT_LOOK, loadLook } from "../entities/piboLook.js";
+import { anyCritterDressed } from "../entities/critterLook.js";
 import { loadLibraryLog } from "../systems/libraryLog.js";
 
 /**
@@ -119,7 +120,7 @@ export class TrophyRoom {
 
 function readUnlocks() {
   const look = loadLook();
-  const art = Object.keys(DEFAULT_LOOK).some((key) => look[key] !== DEFAULT_LOOK[key]);
+  const art = Object.keys(DEFAULT_LOOK).some((key) => look[key] !== DEFAULT_LOOK[key]) || anyCritterDressed();
   let arcade = false;
   try {
     arcade = !!localStorage.getItem(ARCADE_SPEC_KEY);
