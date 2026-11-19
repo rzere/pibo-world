@@ -2460,3 +2460,59 @@ html.phone-landscape .chat-log { height: 64px; }
 @media (prefers-reduced-motion: reduce) {
   .speech { animation: none; }
 }
+
+/* ---------- Feedback / play-testing QR ---------- */
+.qr-btn {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 16px 0 10px;
+  font-size: 22px;
+  background: rgba(255, 248, 238, 0.95);
+  border: 2.5px solid #5c4a3e;
+  border-radius: 999px;
+  box-shadow: 0 4px 0 rgba(92, 74, 62, 0.25), 0 6px 16px rgba(40, 30, 20, 0.16);
+  cursor: pointer;
+}
+.qr-btn:active { transform: translateY(2px); }
+.touch-ui .qr-btn { bottom: max(196px, calc(env(safe-area-inset-bottom) + 180px)); }
+html.phone-landscape .qr-btn { bottom: auto; top: max(58px, calc(env(safe-area-inset-top) + 50px)); height: 38px; font-size: 18px; }
+.qr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: auto;
+}
+.qr-overlay.hidden { display: none; }
+.qr-overlay .map-scrim { position: absolute; inset: 0; background: rgba(74, 59, 53, 0.35); border: 0; }
+.qr-card {
+  position: relative;
+  width: min(380px, 100%);
+  padding: 22px 22px 18px;
+  text-align: center;
+  background: var(--cream);
+  border: 3px solid #5c4a3e;
+  border-radius: 26px;
+  box-shadow: 0 16px 40px rgba(60, 40, 30, 0.28);
+  color: var(--ink);
+  font-family: "Fredoka", system-ui, sans-serif;
+}
+.qr-card .map-close { position: absolute; top: 12px; right: 14px; }
+.qr-img {
+  display: block;
+  width: min(260px, 70vw);
+  height: auto;
+  margin: 6px auto 0;
+  image-rendering: pixelated;
+  background: #fff;
+  border-radius: 12px;
+}

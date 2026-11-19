@@ -20,6 +20,14 @@ document.addEventListener("touchmove", (e) => {
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("gesturechange", (e) => e.preventDefault());
 document.addEventListener("dblclick", (e) => e.preventDefault());
+const qr = document.getElementById("qr-overlay");
+const setQr = (open) => qr.classList.toggle("hidden", !open);
+document.getElementById("qr-btn").addEventListener("click", () => setQr(true));
+for (const close of qr.querySelectorAll("[data-qr-close]")) close.addEventListener("click", () => setQr(false));
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !qr.classList.contains("hidden")) setQr(false);
+});
+
 await game.preload();
 game.start();
 

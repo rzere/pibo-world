@@ -131,6 +131,21 @@
       <div class="collection-list" id="collection-list"></div>
     </div>
 
+    <!-- Play-testing feedback QR -->
+    <button type="button" id="qr-btn" class="qr-btn" aria-label="Feedback and play-testing QR code" aria-haspopup="dialog" aria-controls="qr-overlay">
+      <span aria-hidden="true">📱</span><span class="top-label">Feedback</span>
+    </button>
+    <div id="qr-overlay" class="qr-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="qr-title">
+      <button type="button" class="map-scrim" data-qr-close aria-label="Close"></button>
+      <div class="qr-card">
+        <button type="button" class="map-close" data-qr-close aria-label="Close">×</button>
+        <div class="lobby-kicker">Play-testing</div>
+        <h2 id="qr-title" class="lobby-title">Tell us what you think!</h2>
+        <p class="lobby-copy">Scan to share feedback and join play-testing.</p>
+        <img class="qr-img" src="assets/playtest-qr.png" alt="QR code for feedback and play-testing" />
+      </div>
+    </div>
+
     <!-- Transient toast for gentle world moments -->
     <div id="toast" class="toast hidden"></div>
     <div id="beyond" class="beyond hidden">to infinity and beyond</div>
