@@ -1,37 +1,91 @@
-import { DEFAULT_LOOK, loadLook } from "../entities/piboLook.js";
-import { anyCritterDressed } from "../entities/critterLook.js";
-import { loadLibraryLog } from "../systems/libraryLog.js";
+import { RoomFloor } from "./RoomFloor.js";
 
 /**
- * Full-screen trophy room. One painted mushroom interior, with the prizes
- * as separate sprites. Nothing on screen is a word: the exit is the same
- * arrow button as the art room. A few prizes light up from saves that
- * already exist (a changed look, an arcade spec, a library story). The
- * rest stay dim so there is room to grow.
+ * Your own room, inside the mushroom house. One painted interior with a few
+ * trophies, things you choose for the free stools and shelves, a rug color
+ * and a light. Friends you invite walk around it with you. Visitors see the
+ * owner's decoration, never their own.
  *
- * x and y are the spot on trophy-room.jpg (1280×720) where the sprite
- * sits. w is the sprite width in those same pixels.
+ * x and y are the spot on trophy-room.jpg (1280×720) where a sprite sits;
+ * w is its width in those pixels. Floor positions are those pixels / 100.
  */
-const ARCADE_SPEC_KEY = "pibo.arcade.spec";
+const TROPHIES = [
+  { id: "star", src: "assets/painted/trophies/medal-star.png", x: 255, y: 400, w: 62, delay: "0s" },
+  { id: "gold", src: "assets/painted/trophies/cup-gold.png", x: 640, y: 492, w: 124, delay: "0.6s" },
+  { id: "rosette", src: "assets/painted/trophies/rosette.png", x: 908, y: 404, w: 74, delay: "0.8s" },
+];
 
-const SLOTS = [
-  { id: "shelf-star", src: "assets/painted/trophies/medal-star.png", x: 255, y: 400, w: 62, unlock: "always", delay: "0s" },
-  { id: "shelf-medal", src: "assets/painted/trophies/medal-blue.png", x: 322, y: 404, w: 52, unlock: "library", delay: "0.4s" },
-  { id: "shelf-rose", src: "assets/painted/trophies/rosette.png", x: 908, y: 404, w: 74, unlock: "art", delay: "0.8s" },
-  { id: "shelf-wait", src: "assets/painted/trophies/medal-star.png", x: 1028, y: 412, w: 60, unlock: "locked", delay: "1.1s" },
-  { id: "pad-silver", src: "assets/painted/trophies/cup-silver.png", x: 410, y: 508, w: 108, unlock: "arcade", delay: "0.2s" },
-  { id: "pad-gold", src: "assets/painted/trophies/cup-gold.png", x: 640, y: 492, w: 124, unlock: "always", delay: "0.6s" },
-  { id: "pad-bronze", src: "assets/painted/trophies/cup-bronze.png", x: 862, y: 504, w: 104, unlock: "locked", delay: "1.3s" },
+/** Free spots for decoration: two stools, two shelf ends. */
+const SPOTS = [
+  { x: 412, y: 500, size: 84 },
+  { x: 864, y: 500, size: 84 },
+  { x: 328, y: 400, size: 64 },
+  { x: 1030, y: 404, size: 64 },
+];
+
+export const DECOR_ITEMS = ["🪴", "🧸", "🎸", "📚", "🐠", "🎁", "🕯️", "🌻", "🦖", "🎨", "🪀", "🚀"];
+export const RUGS = [
+  { id: "green", color: null, label: "Green" },
+  { id: "pink", color: "#ff8fc2", label: "Pink" },
+  { id: "blue", color: "#7cc4ff", label: "Blue" },
+  { id: "sun", color: "#ffd15c", label: "Yellow" },
+  { id: "grape", color: "#b18cff", label: "Purple" },
+];
+const DEFAULT_DECOR = { items: ["🪴", "🧸"], rug: "green", light: "day" };
+const DECOR_KEY = "pibo.myroom";
+const MAX_ITEMS = SPOTS.length;
+
+const FLOOR = { left: 1.0, right: 11.8, top: 5.3, bottom: 6.95 };
+const BLOCKS = [
+  { left: 1.2, right: 2.35, bottom: 5.8 }, // plant
+  { left: 3.35, right: 4.95, bottom: 5.55 }, // left stool
+  { left: 5.6, right: 7.25, bottom: 5.55 }, // middle stool
+  { left: 7.75, right: 9.35, bottom: 5.55 }, // right stool
 ];
 
 const INK = "#3a2a24";
 
+export function cleanDecor(raw) {
+  const d = raw && typeof raw === "object" ? raw : {};
+  const items = Array.isArray(d.items) ? d.items.filter((x) => DECOR_ITEMS.includes(x)).slice(0, MAX_ITEMS) : DEFAULT_DECOR.items;
+  return {
+    items,
+    rug: RUGS.some((r) => r.id === d.rug) ? d.rug : DEFAULT_DECOR.rug,
+    light: d.light === "cozy" ? "cozy" : "day",
+  };
+}
+
+export function loadDecor() {
+  try {
+    return cleanDecor(JSON.parse(localStorage.getItem(DECOR_KEY) || "null") || DEFAULT_DECOR);
+  } catch {
+    return cleanDecor(DEFAULT_DECOR);
+  }
+}
+
+function saveDecor(decor) {
+  try {
+    localStorage.setItem(DECOR_KEY, JSON.stringify(decor));
+  } catch {
+    /* private mode */
+  }
+}
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text != null) node.textContent = text;
+  return node;
+}
+
 export class TrophyRoom {
-  constructor({ root, onClose } = {}) {
+  constructor({ root, onClose, onDecor } = {}) {
     this.root = root;
     this.onClose = onClose || null;
+    this.onDecor = onDecor || null;
     this.isOpen = false;
-    this.slots = [];
+    this.mine = true;
+    this.decor = loadDecor();
     this._build();
   }
 
@@ -39,53 +93,159 @@ export class TrophyRoom {
     this.root.innerHTML = "";
     this.root.setAttribute("role", "dialog");
     this.root.setAttribute("aria-modal", "true");
-    this.root.setAttribute("aria-label", "Trophy room");
+    this.root.setAttribute("aria-label", "My room");
 
-    const bg = document.createElement("img");
-    bg.className = "trophy-bg";
+    const bg = el("img", "trophy-bg");
     bg.alt = "";
     bg.src = "assets/painted/trophy-room.jpg";
     bg.addEventListener("load", () => this.layout());
     this.bg = bg;
     this.root.appendChild(bg);
 
-    for (const slot of SLOTS) {
-      const el = document.createElement("div");
-      el.className = "trophy-slot";
-      el.style.animationDelay = slot.delay;
-      const img = document.createElement("img");
-      img.className = "trophy-sprite";
+    this.rug = el("div", "room-rug");
+    this.root.appendChild(this.rug);
+
+    this.placed = [];
+    for (const t of TROPHIES) {
+      const node = el("div", "trophy-slot");
+      node.style.animationDelay = t.delay;
+      const img = el("img", "trophy-sprite");
       img.alt = "";
       img.draggable = false;
-      img.src = slot.src;
-      const shadow = document.createElement("span");
-      shadow.className = "trophy-shadow";
-      el.append(img, shadow);
-      this.root.appendChild(el);
-      this.slots.push({ ...slot, el });
+      img.src = t.src;
+      node.append(img, el("span", "trophy-shadow"));
+      this.root.appendChild(node);
+      this.placed.push({ ...t, el: node });
     }
+    this.spots = SPOTS.map((s) => {
+      const node = el("div", "room-thing");
+      this.root.appendChild(node);
+      return { ...s, el: node };
+    });
 
-    const back = document.createElement("button");
+    this.night = el("div", "room-night");
+    this.root.appendChild(this.night);
+
+    this.floor = new RoomFloor({
+      root: this.root,
+      bg,
+      floor: FLOOR,
+      blocks: BLOCKS,
+      spawn: { x: 6.4, y: 6.35, spreadX: 2.2, spreadY: 0.4 },
+    });
+
+    const back = el("button", "art-back");
     back.type = "button";
-    back.className = "art-back";
     back.setAttribute("aria-label", "Back");
     back.innerHTML = arrowIcon();
     back.addEventListener("click", () => this.onClose?.());
     this.root.appendChild(back);
+
+    this.decorBtn = el("button", "hall-build room-decorate", "🎨 Decorate");
+    this.decorBtn.type = "button";
+    this.decorBtn.addEventListener("click", () => this._togglePanel());
+    this.root.appendChild(this.decorBtn);
+
+    this.panel = el("div", "room-panel hidden");
+    this.root.appendChild(this.panel);
   }
 
-  open() {
+  /** owner: { mine, name, decor } */
+  open({ mine = true, decor = null } = {}) {
     this.isOpen = true;
+    this.mine = mine;
     this.root.classList.remove("hidden");
     this.root.setAttribute("aria-hidden", "false");
-    this._mark();
-    this.layout();
+    this.decorBtn.classList.toggle("hidden", !mine);
+    this.panel.classList.add("hidden");
+    this.show(mine ? this.decor : cleanDecor(decor));
   }
 
   close() {
     this.isOpen = false;
+    this.panel.classList.add("hidden");
     this.root.classList.add("hidden");
     this.root.setAttribute("aria-hidden", "true");
+    this.floor.clearWalkers();
+  }
+
+  get busy() {
+    return false;
+  }
+
+  /* floor contract (same as the art room) */
+  spawnPoint() { return this.floor.spawnPoint(); }
+  moveOnFloor(x, y, dx, dy) { return this.floor.moveOnFloor(x, y, dx, dy); }
+  renderWalkers(list, dt) { this.floor.renderWalkers(list, dt); }
+  clearWalkers() { this.floor.clearWalkers(); }
+
+  /** Draw a decoration (yours, or the owner's when visiting). */
+  show(decor) {
+    this.shown = cleanDecor(decor);
+    this.spots.forEach((spot, i) => {
+      const item = this.shown.items[i];
+      spot.el.textContent = item || "";
+      spot.el.classList.toggle("hidden", !item);
+    });
+    const rug = RUGS.find((r) => r.id === this.shown.rug);
+    this.rug.style.background = rug?.color || "transparent";
+    this.root.classList.toggle("is-cozy", this.shown.light === "cozy");
+    this.layout();
+  }
+
+  _set(change) {
+    this.decor = cleanDecor({ ...this.decor, ...change });
+    saveDecor(this.decor);
+    this.show(this.decor);
+    this._renderPanel();
+    this.onDecor?.(this.decor);
+  }
+
+  _togglePanel() {
+    const open = this.panel.classList.contains("hidden");
+    if (open) this._renderPanel();
+    this.panel.classList.toggle("hidden", !open);
+  }
+
+  _renderPanel() {
+    const d = this.decor;
+    const card = el("div", "room-panel-card");
+    card.append(el("div", "lobby-label", `Things (up to ${MAX_ITEMS})`));
+    const things = el("div", "room-things");
+    for (const item of DECOR_ITEMS) {
+      const on = d.items.includes(item);
+      const b = el("button", `room-pick${on ? " on" : ""}`, item);
+      b.type = "button";
+      b.addEventListener("click", () => {
+        const items = on ? d.items.filter((x) => x !== item) : [...d.items, item].slice(-MAX_ITEMS);
+        this._set({ items });
+      });
+      things.appendChild(b);
+    }
+    card.appendChild(things);
+
+    card.append(el("div", "lobby-label", "Rug"));
+    const rugs = el("div", "room-things");
+    for (const r of RUGS) {
+      const b = el("button", `room-swatch${d.rug === r.id ? " on" : ""}`);
+      b.type = "button";
+      b.title = r.label;
+      b.style.background = r.color || "#9fcf7a";
+      b.addEventListener("click", () => this._set({ rug: r.id }));
+      rugs.appendChild(b);
+    }
+    card.appendChild(rugs);
+
+    card.append(el("div", "lobby-label", "Light"));
+    const lights = el("div", "hall-chips");
+    for (const [id, label] of [["day", "☀️ Day"], ["cozy", "🌙 Cozy night"]]) {
+      const b = el("button", `hall-chip${d.light === id ? " on" : ""}`, label);
+      b.type = "button";
+      b.addEventListener("click", () => this._set({ light: id }));
+      lights.appendChild(b);
+    }
+    card.appendChild(lights);
+    this.panel.replaceChildren(card);
   }
 
   layout() {
@@ -94,46 +254,28 @@ export class TrophyRoom {
     const vh = this.root.clientHeight || window.innerHeight;
     const imgW = this.bg.naturalWidth || 1280;
     const imgH = this.bg.naturalHeight || 720;
-    const cover = Math.max(vw / imgW, vh / imgH);
-    const ox = (vw - imgW * cover) / 2;
-    const oy = (vh - imgH * cover) / 2;
-    const sx = imgW / 1280;
-    const sy = imgH / 720;
-    for (const slot of this.slots) {
-      const x = ox + slot.x * sx * cover;
-      const y = oy + slot.y * sy * cover;
-      const w = slot.w * sx * cover;
-      slot.el.style.left = `${x}px`;
-      slot.el.style.top = `${y}px`;
-      slot.el.style.width = `${w}px`;
+    const cover = Math.max(vw / imgW, vh / imgH) * (imgW / 1280);
+    const ox = (vw - 1280 * cover) / 2;
+    const oy = (vh - 720 * cover) / 2;
+    for (const t of this.placed) {
+      t.el.style.left = `${ox + t.x * cover}px`;
+      t.el.style.top = `${oy + t.y * cover}px`;
+      t.el.style.width = `${t.w * cover}px`;
     }
-  }
-
-  _mark() {
-    const have = readUnlocks();
-    for (const slot of this.slots) {
-      const on = !!have[slot.unlock];
-      slot.el.classList.toggle("is-locked", !on);
+    for (const s of this.spots) {
+      s.el.style.left = `${ox + s.x * cover}px`;
+      s.el.style.top = `${oy + s.y * cover}px`;
+      s.el.style.fontSize = `${s.size * cover}px`;
     }
+    const rx = 232;
+    const ry = 72;
+    Object.assign(this.rug.style, {
+      left: `${ox + (637 - rx) * cover}px`,
+      top: `${oy + (621 - ry) * cover}px`,
+      width: `${rx * 2 * cover}px`,
+      height: `${ry * 2 * cover}px`,
+    });
   }
-}
-
-function readUnlocks() {
-  const look = loadLook();
-  const art = Object.keys(DEFAULT_LOOK).some((key) => look[key] !== DEFAULT_LOOK[key]) || anyCritterDressed();
-  let arcade = false;
-  try {
-    arcade = !!localStorage.getItem(ARCADE_SPEC_KEY);
-  } catch {
-    arcade = false;
-  }
-  let library = false;
-  try {
-    library = loadLibraryLog().events.length > 0;
-  } catch {
-    library = false;
-  }
-  return { always: true, art, arcade, library, locked: false };
 }
 
 function arrowIcon() {

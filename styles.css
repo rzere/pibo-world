@@ -2208,3 +2208,81 @@ html.touch-ui .mini-quit { top: 70px; bottom: auto; }
   50% { content: ".."; }
   75% { content: "..."; }
 }
+
+/* ---------- My room (the mushroom house) ---------- */
+.in-trophy #ui .mobile-controls:not(.hidden) { display: block !important; z-index: 9; }
+.in-trophy .world-bar { z-index: 10; }
+.room-rug {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: color;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.room-thing {
+  position: absolute;
+  transform: translate(-50%, -88%);
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 2px rgba(60, 40, 30, 0.25));
+  animation: trophy-bob 3.6s ease-in-out infinite;
+}
+.room-thing.hidden { display: none; }
+.room-night {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255, 214, 120, 0.55) 0%, rgba(255, 214, 120, 0) 32%),
+    rgba(28, 22, 64, 0.42);
+  mix-blend-mode: multiply;
+}
+.trophy-overlay.is-cozy .room-night { opacity: 1; }
+.room-decorate {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 3;
+  background: var(--coral);
+}
+.room-decorate.hidden { display: none; }
+.room-panel {
+  position: absolute;
+  top: calc(max(14px, env(safe-area-inset-top)) + 62px);
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 11;
+  width: min(300px, calc(100% - 28px));
+}
+.room-panel.hidden { display: none; }
+.room-panel-card {
+  padding: 12px 14px 14px;
+  background: var(--cream);
+  border: 3px solid #5c4a3e;
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-family: "Fredoka", system-ui, sans-serif;
+}
+.room-panel-card .lobby-label:first-child { margin-top: 0; }
+.room-things { display: flex; flex-wrap: wrap; gap: 6px; }
+.room-pick {
+  width: 42px;
+  height: 42px;
+  font-size: 24px;
+  background: #fff;
+  border: 2px solid #eadccb;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.room-pick.on { border-color: var(--coral); background: #fff1e8; box-shadow: 0 0 0 2px rgba(255, 154, 118, 0.35); }
+.room-swatch {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #eadccb;
+  cursor: pointer;
+}
+.room-swatch.on { box-shadow: 0 0 0 3px var(--coral); }

@@ -80,6 +80,7 @@ export class Net {
       name: this.me.name,
       char: this.me.char,
       look: this.me.look || null,
+      room: this.me.room || null,
       space: this.space,
       at: Date.now(),
     });
@@ -91,7 +92,7 @@ export class Net {
     for (const [key, metas] of Object.entries(state)) {
       if (key === this.me.id) continue;
       const meta = metas[metas.length - 1];
-      if (meta) next.set(key, { id: key, name: meta.name, char: meta.char, look: meta.look || null, space: meta.space });
+      if (meta) next.set(key, { id: key, name: meta.name, char: meta.char, look: meta.look || null, room: meta.room || null, space: meta.space });
     }
     this.peers = next;
     this.onPeers?.(next);
@@ -102,7 +103,8 @@ export class Net {
     this._track();
   }
 
-  setProfile({ name, char, look }) {
+  setProfile({ name, char, look, room }) {
+    if (room) this.me.room = room;
     if (name) this.me.name = name;
     if (char) this.me.char = char;
     if (look) this.me.look = look;

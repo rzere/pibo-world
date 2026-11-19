@@ -97,6 +97,7 @@ export class UI {
     });
     this.trophy = new TrophyRoom({
       root: document.getElementById("trophy-overlay"),
+      onDecor: (decor) => this.onTrophyDecor?.(decor),
       onClose: () => {
         document.documentElement.classList.remove("in-trophy");
         this._syncActionBtn();
@@ -406,10 +407,10 @@ export class UI {
     return !!this.trophy?.isOpen;
   }
 
-  openTrophy() {
+  openTrophy(owner) {
     this.closeMap();
     this.closeCollection();
-    this.trophy?.open();
+    this.trophy?.open(owner);
     document.documentElement.classList.add("in-trophy");
     this.hidePrompt();
     this._syncActionBtn();

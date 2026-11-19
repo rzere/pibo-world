@@ -140,6 +140,7 @@ export class Game {
       else this.multiplayer?.setLook(look);
     };
     this.ui.onTrophyLeave = () => this._leaveTrophy();
+    this.ui.onTrophyDecor = (decor) => this.multiplayer?.setDecor(decor);
   }
 
   _initPlayer() {
@@ -399,7 +400,7 @@ export class Game {
 
     const mushroom = this._near(p, LAYOUT.mushroomDoor, 1.45);
     if (mushroom) {
-      ui.setPrompt("Trophy room");
+      ui.setPrompt("My room");
       if (this.input.consume("KeyE", "Enter")) this._enterTrophy();
       return;
     }
@@ -615,7 +616,8 @@ export class Game {
     this._frameCameraOnPibo();
   }
 
-  _enterTrophy() {
+  /** The mushroom house is a personal room: yours, or the one you were invited to. */
+  _enterTrophy(space) {
     if (this.ui.isIdeaOpen) this.ui.closeIdeas();
     if (this.studio.active) this._leaveStudio();
     if (this.libraryRoom.active) this._leaveLibrary("switch");
@@ -626,11 +628,13 @@ export class Game {
     this.started = true;
     this.ui.hideIntro();
     this.pibo.setVisible(false);
-    this.ui.openTrophy();
+    this.ui.openTrophy(this.multiplayer?.roomOwner(space) || { mine: true });
+    this.multiplayer?.enterHome(space);
   }
 
   _leaveTrophy(reason = "exit") {
     if (!this.ui.isTrophyOpen) return;
+    this.multiplayer?.exitHome();
     this.ui.closeTrophy();
     const pad = LAYOUT.mushroomDoor;
     const face = this._faceToward(pad, { x: pad.x, z: pad.z - 1.2 });

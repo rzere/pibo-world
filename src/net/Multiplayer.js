@@ -5,6 +5,7 @@ import { LAYOUT } from "../world/layout.js";
 import { Net } from "./Net.js";
 import { MiniGame } from "../arcade/MiniGame.js";
 import { cleanRecipe } from "../arcade/spec.js";
+import { loadDecor } from "../ui/TrophyRoom.js";
 
 const SEND_EVERY = 0.1;
 const HEARTBEAT = 1.0;
@@ -43,7 +44,7 @@ export class Multiplayer {
   }
 
   start(world, me) {
-    this.me = { ...me, look: me.char === "pibo" ? null : loadCritterLook(me.char) };
+    this.me = { ...me, look: me.char === "pibo" ? null : loadCritterLook(me.char), room: loadDecor() };
     this._useCharacter(me.char);
     this._spawn();
     this.game.started = true;
@@ -112,17 +113,42 @@ export class Multiplayer {
 
   goTo(space) {
     if (!this.net || space === this.net.space) return;
+    if (space.startsWith("home:")) {
+      this.game._goToMushroom();
+      this.game._enterTrophy(space);
+      const owner = this.roomOwner(space);
+      this.game.ui.toast(owner.mine ? "Your own room. Invite friends from the list 🏠" : `Visiting ${owner.name || "a friend"}'s room 🏠`, 2400);
+      return;
+    }
     this.game._travelTo?.(LAYOUT.start, { x: LAYOUT.start.x, z: LAYOUT.start.z + 1 });
     this._spawn();
-    this.net.setSpace(space);
+    if (this.net.space !== space) this.net.setSpace(space);
     this._last = "";
     this._beatT = HEARTBEAT;
-    const mine = space === `home:${this.me.id}`;
-    const host = this.net.peers.get(space.replace(/^home:/, ""));
-    if (space === "world") this.game.ui.toast("Back in the world 🌍", 1800);
-    else if (mine) this.game.ui.toast("Your own room. Invite friends from the list 🏠", 2600);
-    else this.game.ui.toast(`Visiting ${host?.name || "a friend"}'s room 🏠`, 2200);
+    this.game.ui.toast("Back in the world 🌍", 1800);
     this._syncPeers();
+  }
+
+  /* personal rooms (the mushroom house) -------------------------------- */
+
+  roomOwner(space) {
+    if (!this.me || !space || space === `home:${this.me.id}`) return { mine: true };
+    const owner = this.net?.peers.get(space.replace(/^home:/, ""));
+    return { mine: false, name: owner?.name, decor: owner?.room };
+  }
+
+  enterHome(space) {
+    this._enterRoom("home", this.game.ui.trophy, space || `home:${this.me?.id}`);
+  }
+
+  exitHome() {
+    if (this.art?.kind === "home") this._exitRoom();
+  }
+
+  setDecor(decor) {
+    if (!this.me) return;
+    this.me.room = decor;
+    this.net?.setProfile({ room: decor });
   }
 
   _syncPeers() {
@@ -164,6 +190,10 @@ export class Multiplayer {
         avatar.lookKey = lookKey;
         avatar.setLook(look);
       }
+    }
+    if (this.art?.kind === "home") {
+      const owner = this.roomOwner(this.space);
+      if (!owner.mine && owner.decor) this.game.ui.trophy.show(owner.decor);
     }
     this._hideTakenCritters();
     this._refreshBar();
@@ -221,12 +251,12 @@ export class Multiplayer {
   }
 
   /** A painted room next to wherever you came from (art room, arcade). */
-  _enterRoom(kind, floor) {
+  _enterRoom(kind, floor, space) {
     if (!this.net || this.art) return;
-    this._artBase = this.space;
+    this._artBase = this.space.startsWith("home:") ? "world" : this.space;
     const p = floor.spawnPoint();
     this.art = { kind, floor, x: p.x, y: p.y, fx: 0, fz: 1, moving: false };
-    this.net.setSpace(`${kind}:${this._artBase}`);
+    this.net.setSpace(space || `${kind}:${this._artBase}`);
     this._last = "";
     this._beatT = HEARTBEAT;
     this._syncPeers();
