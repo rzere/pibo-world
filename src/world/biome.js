@@ -6,7 +6,7 @@ import { PLATE_PIXELS } from "../data/painted.js";
  * Red = grass and path, blue = open air over the sea (Pibo flies there).
  * Green in the mask is everything else. Only the sky that touches the top of
  * the picture blocks a step. Rocks, flowers, and the coast stay walkable.
- * The strip of sea painted under the picture is air, same as the sea.
+ * Past the bottom of the picture is out of frame, so a step stops there.
  */
 
 const IMG_W = 1280;

@@ -4,9 +4,8 @@ import { PLACEMENTS } from "./layout.js";
 import { placeOnPlate } from "./iso.js";
 
 /**
- * Tall objects cut from the concept painting. Each card is the same pixels
- * as the plate, so the still picture matches, and the depth of the feet
- * lets Pibo walk behind a house.
+ * Optional cards on the painting. The island itself is one picture.
+ * A card here would be a single swappable sprite with its feet on the ground.
  */
 export class IsoSprite {
   constructor(asset, texture) {

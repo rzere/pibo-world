@@ -1,50 +1,27 @@
 # Replacing art on Pibo Island
 
-The island is one bright picture, shown flat to the camera. Pibo is a separate layer on top of it, with his own shadow. Nothing in the picture has words or signs. The Go to lighthouse, Go to Arcade, Go to Library, and Map buttons are HTML in `index.html` and `styles.css`.
+The island is one bright picture, shown flat to the camera. Pibo is a separate layer on top of it, with his own shadow. Buildings and trees stay inside that picture so they cannot clip through each other. Nothing in the picture has words or signs. The Go to lighthouse, Go to Arcade, Go to Library, and Map buttons are HTML in `index.html` and `styles.css`.
 
 The list of images lives in [`src/data/assets.js`](src/data/assets.js) and [`src/data/layers.js`](src/data/layers.js). Where Pibo starts, and where each door is, lives in `layers.js` (re-exported from [`src/data/painted.js`](src/data/painted.js)). The walls he slides along are the `HOUSES` and `CIRCLES` in that same file.
 
 ## What to draw
 
-Bold, saturated, flat color, thick outlines, and very little detail. No letters anywhere in the picture. No human characters. Animal mascots are their own files.
+Bold, saturated, flat color, thick outlines, and very little detail. No letters anywhere in the picture. No human characters. Outdoor animals are not part of the island picture.
 
-Replace one PNG and refresh. Positions stay in `src/data/layers.js`. Rebuild from the locked concepts with `python3 tools/build-layers.py`.
+Replace the plate and refresh. Doors and walls stay in `src/data/layers.js`. The clean outdoor picture is `assets/painted/sources/island-outdoor.png` (1280 × 720, no animals, no edge pad). `python3 tools/build-layers.py` copies it to the plate at 2560 × 1440. It does not cut the painting apart.
 
 ### Ground
 
-- **Plate** (`assets/painted/plate.png`) — terrain only: sky, sea, islet grass, paths, cliffs, and small flowers. Buildings, hero trees, the picnic blanket, and mascots are not in this file. 2560 × 1632. The middle is the 32 × 18 play area.
+- **Plate** (`assets/painted/plate.png`) — the whole outdoor island: sky, sea, islets, grass, paths, cliffs, flowers, buildings, and trees. Outdoor animals and butterflies are not in this file. 2560 × 1440, which is the 32 × 18 play area. Do not pad it by stretching the edge rows.
+- **Animal mascots** (`assets/critters/<name>/`) — her cat, dog, bunny, panda, frog, penguin, unicorn, and fox. Each folder has eight walk drawings from her cycle sheet: front, three-quarter, side, and back-three-quarter, for both sides. They are smaller than Pibo, who is the only pot. Rebuild with `python3 tools/cut-critter-walk.py`. The purple names on the sheet are not part of the sprites.
 - **Walk mask** (`assets/painted/walk-mask.png`) — red where Pibo may walk, blue for open sea (he flies there), green for the top sky edge. 640 × 360.
 
-### Buildings — one file each
+### Library room
+
+The book-stack library, cottage, market, mushroom house, arcade, and lighthouse are painted into the plate. Their walls are `HOUSES` in `src/data/layers.js`. The two big canopies are in the plate too. Trunk keep-outs are `CIRCLES`.
 
 | Layer | File |
 | --- | --- |
-| Book-stack library | `assets/painted/layers/library.png` |
-| Art cottage (red roof) | `assets/painted/layers/cottage.png` |
-| Market stall | `assets/painted/layers/market.png` |
-| Mushroom house | `assets/painted/layers/mushroom-house.png` |
-| Purple arcade | `assets/painted/layers/arcade.png` |
-| Lighthouse | `assets/painted/layers/lighthouse.png` |
-
-### Nature and picnic
-
-| Layer | File |
-| --- | --- |
-| Green canopy | `assets/painted/layers/tree-green.png` |
-| Pink canopy | `assets/painted/layers/tree-pink.png` |
-| Picnic blanket | `assets/painted/layers/picnic.png` |
-
-### Animal mascots (no people)
-
-| Layer | File |
-| --- | --- |
-| Fox | `assets/painted/layers/fox.png` |
-| Pink friend | `assets/painted/layers/pink-friend.png` |
-| White cat | `assets/painted/layers/white-cat.png` |
-| Blue bird | `assets/painted/layers/bird.png` |
-| Chick in a hat | `assets/painted/layers/chick.png` |
-| Snail | `assets/painted/layers/snail.png` |
-| Winged cat | `assets/painted/layers/wing-cat.png` |
 | Library raccoon | `assets/painted/layers/raccoon.png` |
 
 The library hangout background, with the raccoon removed, is `assets/painted/layers/library-hangout.png`.
@@ -63,7 +40,7 @@ The library hangout background, with the raccoon removed, is `assets/painted/lay
 2. Overwrite `assets/painted/plate.png` or `assets/pibo/pibo.png`.
 3. Refresh the game. There is no build step.
 
-The old cutouts in `assets/painted/sprites/` are not drawn. Each current building is the matching file under `assets/painted/layers/`. Footprints are `HOUSES` and `CIRCLES` in `src/data/layers.js`. If a new painting moves a building, move that polygon and the sprite `x` / `z` so Pibo still slides along the wall.
+The old cutouts in `assets/painted/sprites/` are not drawn. Outdoor buildings are not separate stickers. Footprints are `HOUSES` and `CIRCLES` in `src/data/layers.js`. If a new painting moves a building, move that polygon so Pibo still slides along the wall.
 
 Doors are points in `src/data/layers.js`:
 

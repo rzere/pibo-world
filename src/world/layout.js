@@ -1,7 +1,7 @@
 /**
  * Bright-island layout. x grows to the right of the picture, z grows down.
- * Building footprints and mascot circles come from the layer manifest so a
- * replaced PNG keeps the same door and the same keep-out.
+ * Building footprints and trunk circles come from the layer manifest so a
+ * replaced painting keeps the same door and the same keep-out.
  */
 import { CIRCLES, HOUSES, LAYOUT, PLACEMENTS } from "../data/painted.js";
 

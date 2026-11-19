@@ -26,28 +26,23 @@ export function placeOnPlate(object, x, z, bias = 0) {
 }
 
 /**
- * Sky and sea kept around the painting so the lighthouse cap, the library
- * flag, and the arcade are not cut by the screen edge. Desktop 16:10 and
- * 16:9, and a sideways phone, all contain this frame.
+ * Frame the painting itself.
+ * A margin used to be filled by stretching the picture's edge rows, which
+ * drew a hard seam and streaks under the cliffs and flowers. The view stays
+ * inside the real pixels. A taller window crops the sides a little. A wider
+ * window crops a little sky and foreground instead of stretching the edges.
  */
-const FRAME_MARGIN_Y = 1.15;
+const VIEW_INSET = 0.04;
 
-/**
- * Frame the painting.
- * The view always contains the whole picture, with a band of sky above it
- * and sea below it. A wide window shows a little more sky at the sides.
- */
 export function orthoSize(width, height) {
   const aspect = width / Math.max(1, height);
-  const frameH = PLATE_H + FRAME_MARGIN_Y * 2;
-  const frameW = PLATE_W;
-  const frameAspect = frameW / frameH;
-  if (aspect >= frameAspect) {
-    const viewH = frameH;
-    return { viewW: viewH * aspect, viewH };
+  const artAspect = PLATE_W / PLATE_H;
+  if (aspect >= artAspect) {
+    const viewW = PLATE_W - VIEW_INSET;
+    return { viewW, viewH: viewW / aspect };
   }
-  const viewW = frameW;
-  return { viewW, viewH: viewW / aspect };
+  const viewH = PLATE_H - VIEW_INSET;
+  return { viewW: viewH * aspect, viewH };
 }
 
 /** Short landscape windows are phones held sideways, not a desktop monitor. */

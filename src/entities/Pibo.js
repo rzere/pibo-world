@@ -103,6 +103,11 @@ export class Pibo {
     this.group.scale.setScalar(scale);
     this.group.add(this.shadow);
     this.group.add(this.pivot);
+    // Empty hook for a future parachute drawing. It sits on the top of the pot
+    // and follows the flight lift. Nothing is drawn until that art exists.
+    this.parachuteAnchor = new THREE.Group();
+    this.parachuteAnchor.name = "parachute-anchor";
+    this.group.add(this.parachuteAnchor);
     this._faceImage = {};
     this._faceMap = {};
     this._painted = {};
@@ -336,6 +341,10 @@ export class Pibo {
     this.mesh.rotation.z = lean;
     // The plane is centered. Park its base on the ground while it squishes or lies flat.
     this.mesh.position.y = this.asset.height * sy * grow * 0.5 + bob;
+    if (this.parachuteAnchor) {
+      const top = this.mesh.position.y + this.asset.height * this.mesh.scale.y * 0.5;
+      this.parachuteAnchor.position.set(0, top, 0);
+    }
     if (this.shadow) {
       this.shadow.material.opacity = this.flying ? 0.34 : 0.58;
       const spread = this.flying ? 0.62 : state === "walk" ? 1 + (1 - sy) * 1.4 : 1;

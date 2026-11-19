@@ -10,6 +10,7 @@
  * Pibo's frames live under `states`. See ASSETS.md.
  */
 import { PAINTED_SPRITES, PLATE_PIXELS, PLATE_SRC, WALK_MASK_SRC } from "./painted.js";
+import { CRITTERS } from "./critters.js";
 
 const px = (w, h) => ({ pixelWidth: w, pixelHeight: h });
 
@@ -22,7 +23,7 @@ export const ASSETS = {
     pixelHeight: PLATE_PIXELS.pixelHeight,
     width: PLATE_PIXELS.worldW,
     height: PLATE_PIXELS.worldH,
-    note: "Bright island background. Houses, islets, and the lighthouse lamp are painted into this picture. Swap assets/painted/plate.png.",
+    note: "The whole outdoor island, unpadded. Buildings and trees are in this picture. Swap assets/painted/plate.png.",
   },
   walkMask: {
     id: "walk-mask",
@@ -59,6 +60,21 @@ export const ASSETS = {
     },
   },
 };
+
+for (const critter of CRITTERS) {
+  ASSETS[critter.id] = {
+    id: critter.id,
+    src: critter.src,
+    kind: "character",
+    pixelWidth: critter.pixelWidth,
+    pixelHeight: critter.pixelHeight,
+    width: critter.width,
+    height: critter.height,
+    anchor: { x: 0.5, y: 0 },
+    states: { walk: critter.frames },
+    note: "Paria's little animal. Eight walk drawings, not painted into the plate.",
+  };
+}
 
 for (const sprite of PAINTED_SPRITES) {
   ASSETS[sprite.id] = {
