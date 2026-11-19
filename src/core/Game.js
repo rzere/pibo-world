@@ -507,7 +507,7 @@ export class Game {
 
   async _generateStudioClip(prompt) {
     this.ui.setStudioBusy(true);
-    this.ui.setStudioStatus("Making your little show…");
+    this.ui.setStudioStatus("Creating your show…");
     const clip = await this.studio.generate(prompt);
     if (!this.studio.active || !clip) {
       this.ui.setStudioBusy(false);
@@ -515,7 +515,7 @@ export class Game {
     }
     this.ui.setStudioBusy(false);
     if (clip.demo && clip.fallbackReason) {
-      this.ui.setStudioStatus("Demo clip — hook a video API later");
+      this.ui.setStudioStatus("Playing a demo show");
       this.ui.toast("Playing a toy demo on the screen ✨", 2400);
     } else if (clip.demo) {
       this.ui.setStudioStatus("Demo show playing on the screen");

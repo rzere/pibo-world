@@ -1,4 +1,6 @@
 import { getVideoApiUrl } from "../config.js";
+import { cleanScene } from "../studio/scene.js";
+import { createSceneClip } from "../studio/scenePlayer.js";
 
 /**
  * Pluggable "prompt → clip" client for the screen studio.
@@ -41,10 +43,27 @@ export async function generateClip(prompt, { signal } = {}) {
     }
   }
 
+  let reason = "";
+  try {
+    const res = await fetch("/api/scene", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: text }),
+      signal: signal || AbortSignal.timeout(28000),
+    });
+    const data = res.ok ? await res.json() : null;
+    if (data?.scene) return createSceneClip(cleanScene(data.scene));
+    reason = data?.reason || `scene ${res.status}`;
+  } catch (err) {
+    if (signal?.aborted) throw err;
+    reason = err?.message || "scene unavailable";
+  }
+
   await wait(DEMO_DELAY_MS, signal);
   const clip = createMockClip(text);
   clip.demo = true;
   clip.provider = "demo";
+  clip.fallbackReason = reason;
   return clip;
 }
 
