@@ -232,6 +232,7 @@ export class Game {
 
   _frame() {
     const dt = Math.min(this.clock.getDelta(), 0.05);
+    this.multiplayer?.update(dt);
 
     if (this.arcadeRoom.active) {
       this.arcadeRoom.update(dt);
@@ -270,7 +271,7 @@ export class Game {
       return;
     }
 
-    const frozen = this.ui.isModalOpen || this.ui.isMapOpen || this.ui.isArcadeOpen;
+    const frozen = this.ui.isModalOpen || this.ui.isMapOpen || this.ui.isArcadeOpen || !!this.lobby?.isOpen;
     if (this.friendsVisible) {
       this.companion.update(dt, null, { frozen: true });
       this.pino.update(dt, null, { frozen: true });

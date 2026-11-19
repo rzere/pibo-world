@@ -15,7 +15,7 @@ import {
 
 export { CIRCLES, HOUSES, LAYOUT, LIBRARY_MASCOT, PAINTED_SPRITES };
 
-export const PLATE_SRC = "assets/painted/plate.png";
+export const PLATE_SRC = "assets/painted/plate.webp";
 export const PLATE_PIXELS = {
   pixelWidth: 2560,
   pixelHeight: 1440,
