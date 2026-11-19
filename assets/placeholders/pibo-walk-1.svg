@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="260" viewBox="0 0 200 260" fill="none">
+
+  <ellipse cx="100" cy="228" rx="46" ry="10" fill="#7ea85a" opacity="0.45"/>
+  <ellipse cx="84" cy="214" rx="12" ry="7" fill="#e3b63e" stroke="#5a4638" stroke-width="4"/>
+  <ellipse cx="116" cy="214" rx="12" ry="7" fill="#e3b63e" stroke="#5a4638" stroke-width="4"/>
+  <path d="M62 118.64 Q54 193.51999999999998 70 193.51999999999998 H130 Q146 193.51999999999998 138 118.64" fill="#f6d15a" stroke="#5a4638" stroke-width="6" stroke-linejoin="round"/>
+  <ellipse cx="100" cy="118.64" rx="40" ry="10" fill="#e3b63e" stroke="#5a4638" stroke-width="5"/>
+  <ellipse cx="100" cy="122.64" rx="28" ry="7" fill="#6b4a32"/>
+  <ellipse cx="78" cy="154.64" rx="7" ry="4" fill="#f7b7b0" opacity="0.9"/>
+  <ellipse cx="122" cy="154.64" rx="7" ry="4" fill="#f7b7b0" opacity="0.9"/>
+  <ellipse cx="86" cy="146.64" rx="5" ry="8" fill="#5a4638"/>
+  <ellipse cx="114" cy="146.64" rx="5" ry="8" fill="#5a4638"/>
+  <path d="M92 162.64 Q100 170.64 108 162.64" stroke="#5a4638" stroke-width="3" stroke-linecap="round"/>
+  <path d="M45.4 148.64 Q26.8 128.64 39.4 114.64" stroke="#f6d15a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M154.6 148.64 Q173.2 128.64 160.6 114.64" stroke="#f6d15a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M45.4 148.64 Q26.8 128.64 39.4 114.64" fill="none" stroke="#5a4638" stroke-width="4" stroke-linecap="round"/>
+  <path d="M154.6 148.64 Q173.2 128.64 160.6 114.64" fill="none" stroke="#5a4638" stroke-width="4" stroke-linecap="round"/>
+  <path d="M92 116.64 Q78 68.64 88 40.64" stroke="#5fa84a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M108 116.64 Q122 64.64 112 32.64" stroke="#7fbf62" stroke-width="7" stroke-linecap="round"/>
+  <path d="M100 114.64 Q100 58.64 100 26.64" stroke="#8ed06c" stroke-width="7" stroke-linecap="round"/>
+  <ellipse cx="86" cy="40.64" rx="12" ry="6" fill="#7fbf62" stroke="#5a4638" stroke-width="3" transform="rotate(-30 86 40.64)"/>
+  <ellipse cx="114" cy="32.64" rx="12" ry="6" fill="#5fa84a" stroke="#5a4638" stroke-width="3" transform="rotate(24 114 32.64)"/>
+  <ellipse cx="100" cy="24.64" rx="11" ry="6" fill="#b6de8e" stroke="#5a4638" stroke-width="3"/>
+
+</svg>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+
+  <defs>
+    <radialGradient id="sea" cx="48%" cy="46%" r="62%">
+      <stop offset="0" stop-color="#b7e4f4"/>
+      <stop offset="0.45" stop-color="#8fd0e8"/>
+      <stop offset="0.78" stop-color="#6ebcde"/>
+      <stop offset="1" stop-color="#6ebcde" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sea)"/>
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" opacity="0.45">
+    <path d="M120 240 Q220 220 300 244" stroke-width="6"/>
+    <path d="M180 250 Q260 236 330 252" stroke-width="4"/>
+    <path d="M640 320 Q760 300 860 330" stroke-width="6"/>
+    <path d="M700 340 Q800 328 880 346" stroke-width="4"/>
+    <path d="M200 620 Q320 600 420 626" stroke-width="6"/>
+    <path d="M260 640 Q360 628 440 646" stroke-width="4"/>
+    <path d="M560 760 Q700 740 820 770" stroke-width="6"/>
+    <path d="M140 800 Q240 784 320 806" stroke-width="5"/>
+  </g>
+  <g fill="#ffffff" opacity="0.35">
+    <circle cx="240" cy="300" r="3"/><circle cx="780" cy="380" r="2.5"/>
+    <circle cx="360" cy="700" r="3"/><circle cx="640" cy="640" r="2"/>
+  </g>
+
+</svg>

@@ -1,23 +1,19 @@
 import * as THREE from "three";
-import { clay, ball, box, cyl, cone, shade } from "../world/materials.js";
-import { LAYOUT, dirOf } from "../world/layout.js";
+import { LAYOUT, GROUND_Y } from "../world/layout.js";
 import { getPlant } from "../data/plants.js";
 
-const STAGE_TIME = 2.6; // seconds per growth stage
-const INTERACT_RANGE = 2.6; // world units from Pibo to a spot
+const STAGE_TIME = 2.6;
+const INTERACT_RANGE = 2.2;
 
 /**
- * The starter garden: three raised planter beds the player can plant in, watch
- * grow through stages, and inspect to learn a small fact. Growing all three
- * fires `onAllGrown` so the world can reward the player.
- *
- * Interaction is exposed through getInteractable(worldPos): the Game asks each
- * frame what (if anything) is in reach and what pressing E would do, so this
- * system owns all garden state while staying decoupled from input/UI.
+ * Three flower beds on the island. Planting, growing, and inspecting stay the
+ * same; the beds and sprouts are flat so they sit in the painterly world.
+ * Swap in drawn plant frames later by replacing `_paintStage`.
  */
 export class GardenSystem {
-  constructor(planet) {
-    this.planet = planet;
+  constructor(parent, { isoQuat } = {}) {
+    this.parent = parent;
+    this.isoQuat = isoQuat || new THREE.Quaternion();
     this.spots = [];
     this.onAllGrown = null;
     this.onBloom = null;
@@ -26,15 +22,20 @@ export class GardenSystem {
 
   build() {
     LAYOUT.garden.forEach((entry, i) => {
-      const bed = buildPlanterBed();
-      this.planet.placeOnSurface(shade(bed), dirOf(entry), { yaw: entry.lon });
-      const worldPos = bed.getWorldPosition(new THREE.Vector3());
+      const bed = buildBed();
+      bed.position.set(entry.x, GROUND_Y + 0.03, entry.z);
+      this.parent.add(bed);
+
+      const holder = new THREE.Group();
+      holder.position.set(entry.x, GROUND_Y + 0.15, entry.z);
+      holder.quaternion.copy(this.isoQuat);
+      this.parent.add(holder);
+
       this.spots.push({
         index: i,
-        dir: dirOf(entry),
-        worldPos,
-        holder: bed.userData.holder,
-        state: "empty", // empty | growing | bloomed
+        worldPos: new THREE.Vector3(entry.x, GROUND_Y, entry.z),
+        holder,
+        state: "empty",
         plantId: null,
         stage: 0,
         timer: 0,
@@ -50,22 +51,19 @@ export class GardenSystem {
     return this.spots.filter((s) => s.state === "bloomed").length;
   }
 
-  /** What can Pibo do at the nearest spot right now? */
   getInteractable(worldPos) {
-    let best = null, bestD = INTERACT_RANGE;
+    let best = null;
+    let bestD = INTERACT_RANGE;
     for (const s of this.spots) {
-      const d = worldPos.distanceTo(s.worldPos);
-      if (d < bestD) { best = s; bestD = d; }
+      const d = Math.hypot(worldPos.x - s.worldPos.x, worldPos.z - s.worldPos.z);
+      if (d < bestD) {
+        best = s;
+        bestD = d;
+      }
     }
     if (!best) return null;
-
-    if (best.state === "empty") {
-      return { spot: best, kind: "plant", label: "Plant something" };
-    }
-    if (best.state === "growing") {
-      return { spot: best, kind: "wait", label: "Growing…", disabled: true };
-    }
-    // bloomed
+    if (best.state === "empty") return { spot: best, kind: "plant", label: "Plant something" };
+    if (best.state === "growing") return { spot: best, kind: "wait", label: "Growing…", disabled: true };
     return { spot: best, kind: "inspect", label: best.inspected ? "Look again" : "What is it?" };
   }
 
@@ -79,9 +77,9 @@ export class GardenSystem {
   }
 
   factFor(spot) {
-    const p = getPlant(spot.plantId);
-    if (p) spot.inspected = true;
-    return p;
+    const plant = getPlant(spot.plantId);
+    if (plant) spot.inspected = true;
+    return plant;
   }
 
   update(dt) {
@@ -96,158 +94,165 @@ export class GardenSystem {
             s.stage = plant.stages - 1;
             s.state = "bloomed";
             this._setStageMesh(s);
-            if (this.onBloom) this.onBloom(s);
+            this.onBloom?.(s);
           } else {
             this._setStageMesh(s);
           }
         }
       }
-      // pop-in + idle sway on the current plant mesh
       if (s.plantMesh) {
         if (s.popT < 1) {
           s.popT = Math.min(1, s.popT + dt * 2.2);
-          s.plantMesh.scale.setScalar(easeOutBack(s.popT));
+          const pop = easeOutBack(s.popT);
+          s.plantMesh.scale.set(pop, pop, 1);
         }
-        s.plantMesh.rotation.z = Math.sin(performance.now() * 0.001 * 1.4 + s.index) * 0.05;
+        s.plantMesh.position.y = 0.55 + Math.sin(performance.now() * 0.001 * 1.4 + s.index) * 0.04;
       }
     }
-
-    if (!this._rewarded && this.grownCount === this.spots.length) {
+    if (!this._rewarded && this.grownCount === this.spots.length && this.spots.length > 0) {
       this._rewarded = true;
-      if (this.onAllGrown) this.onAllGrown();
+      this.onAllGrown?.();
     }
   }
 
   _setStageMesh(spot) {
     if (spot.plantMesh) {
       spot.holder.remove(spot.plantMesh);
-      disposeTree(spot.plantMesh);
+      spot.plantMesh.geometry?.dispose();
+      spot.plantMesh.material.map?.dispose();
+      spot.plantMesh.material.dispose();
     }
     const plant = getPlant(spot.plantId);
-    const mesh = shade(buildStage(plant, spot.stage), true, false);
+    const mesh = buildSprout(plant, spot.stage);
     spot.plantMesh = mesh;
     spot.popT = 0;
-    mesh.scale.setScalar(0.001);
+    mesh.scale.set(0.001, 0.001, 1);
     spot.holder.add(mesh);
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Builders                                                            */
-/* ------------------------------------------------------------------ */
-
-function buildPlanterBed() {
+function buildBed() {
   const g = new THREE.Group();
-  const wood = clay(0xb0794a);
-  const size = 0.8, th = 0.12, hgt = 0.28;
-  for (const [ax, az] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
-    const horiz = ax === 0;
-    const rail = box(horiz ? size * 2 : th, hgt, horiz ? th : size * 2, wood);
-    rail.position.set(ax * size, hgt / 2, az * size);
-    g.add(rail);
-  }
-  const soil = box(size * 2 - th, 0.16, size * 2 - th, clay(0x6a4a33, { roughness: 1 }));
-  soil.position.y = 0.2;
+  const soil = new THREE.Mesh(
+    new THREE.CircleGeometry(0.55, 20),
+    new THREE.MeshBasicMaterial({ color: 0x6a4a33 })
+  );
+  soil.rotation.x = -Math.PI / 2;
+  const rim = new THREE.Mesh(
+    new THREE.RingGeometry(0.48, 0.62, 22),
+    new THREE.MeshBasicMaterial({ color: 0xc4925a, side: THREE.DoubleSide })
+  );
+  rim.rotation.x = -Math.PI / 2;
+  rim.position.y = 0.01;
   g.add(soil);
-  // little seed markers in the soil
-  const holder = new THREE.Group();
-  holder.position.y = 0.28;
-  g.add(holder);
-  g.userData.holder = holder;
+  g.add(rim);
   return g;
 }
 
-function buildStage(plant, stage) {
-  const g = new THREE.Group();
-  const stemMat = clay(plant.leaf ?? 0x6fae5a);
+function buildSprout(plant, stage) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 160;
+  const ctx = canvas.getContext("2d");
+  paintStage(ctx, plant, stage);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    transparent: true,
+    alphaTest: 0.15,
+    depthWrite: true,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 1.05), mat);
+  mesh.position.y = 0.55;
+  return mesh;
+}
 
+function paintStage(ctx, plant, stage) {
+  const color = css(plant.color);
+  const accent = css(plant.accent);
+  const leaf = css(plant.leaf ?? 0x6fae5a);
+  ctx.clearRect(0, 0, 128, 160);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#5a4638";
+  ctx.lineWidth = 4;
+  const stemTop = stage === 0 ? 118 : stage === 1 ? 96 : stage === 2 ? 72 : 58;
+  ctx.beginPath();
+  ctx.moveTo(64, 142);
+  ctx.quadraticCurveTo(60, (142 + stemTop) / 2, 64, stemTop);
+  ctx.strokeStyle = leaf;
+  ctx.stroke();
+  ctx.strokeStyle = "#5a4638";
+  if (stage >= 1) {
+    leafBlob(ctx, 48, stemTop + 16, leaf, -0.6);
+    leafBlob(ctx, 80, stemTop + 20, leaf, 0.5);
+  }
   if (stage === 0) {
-    // a sprouting seed: a nub with two tiny leaves
-    const nub = ball(0.06, clay(0x8a5a3a));
-    nub.position.y = 0.04;
-    g.add(nub);
-    for (const sx of [-1, 1]) {
-      const leaf = ball(0.07, stemMat);
-      leaf.scale.set(1, 0.35, 0.6);
-      leaf.position.set(sx * 0.06, 0.1, 0);
-      leaf.rotation.z = sx * 0.7;
-      g.add(leaf);
-    }
-    return g;
+    ctx.fillStyle = "#8a5a3a";
+    circle(ctx, 64, 132, 7);
+    return;
   }
-
-  // stems for later stages
-  const h = stage === 1 ? 0.28 : stage === 2 ? 0.5 : 0.7;
-  const stem = cyl(0.03, 0.05, h, stemMat, 8);
-  stem.position.y = h / 2;
-  g.add(stem);
-  for (const sx of [-1, 1]) {
-    const leaf = ball(0.1, stemMat);
-    leaf.scale.set(1, 0.4, 0.65);
-    leaf.position.set(sx * 0.1, h * 0.45, 0);
-    leaf.rotation.z = sx * 0.7;
-    g.add(leaf);
-  }
-
-  if (stage === 1) return g;
-
+  if (stage === 1) return;
   if (stage === 2) {
-    // a closed bud
-    const bud = ball(0.12, clay(plant.accent));
-    bud.scale.set(1, 1.4, 1);
-    bud.position.y = h + 0.05;
-    g.add(bud);
-    return g;
+    ctx.fillStyle = accent;
+    circle(ctx, 64, stemTop - 6, 10);
+    return;
   }
-
-  // stage 3: full bloom, per type
-  const head = new THREE.Group();
-  head.position.y = h + 0.02;
   if (plant.type === "sun") {
-    const center = ball(0.14, clay(plant.accent));
-    head.add(center);
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2;
-      const petal = ball(0.12, clay(plant.color));
-      petal.scale.set(1, 0.3, 0.5);
-      petal.position.set(Math.cos(a) * 0.2, 0, Math.sin(a) * 0.2);
-      petal.lookAt(0, 0, 0);
-      head.add(petal);
+    ctx.fillStyle = color;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      circle(ctx, 64 + Math.cos(a) * 16, stemTop - 8 + Math.sin(a) * 12, 7);
     }
+    ctx.fillStyle = accent;
+    circle(ctx, 64, stemTop - 8, 8);
   } else if (plant.type === "bell") {
-    for (let i = 0; i < 3; i++) {
-      const a = (i / 3) * Math.PI * 2;
-      const bell = cone(0.11, 0.2, clay(plant.color), 12);
-      bell.rotation.x = Math.PI; // opening downward
-      bell.position.set(Math.cos(a) * 0.12, -0.05 - i * 0.02, Math.sin(a) * 0.12);
-      head.add(bell);
+    ctx.fillStyle = color;
+    for (const dx of [-14, 0, 14]) {
+      ctx.beginPath();
+      ctx.ellipse(64 + dx, stemTop + 2, 8, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
     }
   } else {
-    // fern: arching fronds instead of a flower
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      const frond = cyl(0.015, 0.03, 0.4, clay(plant.color), 6);
-      frond.position.set(Math.cos(a) * 0.08, 0.1, Math.sin(a) * 0.08);
-      frond.rotation.z = Math.cos(a) * 0.6;
-      frond.rotation.x = Math.sin(a) * 0.6;
-      head.add(frond);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(64, stemTop);
+      ctx.quadraticCurveTo(64 + side * 20, stemTop - 10, 64 + side * 28, stemTop + 8);
+      ctx.stroke();
     }
   }
-  g.add(head);
-  return g;
+}
+
+function leafBlob(ctx, x, y, color, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function circle(ctx, x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+}
+
+function css(hex) {
+  return `#${hex.toString(16).padStart(6, "0")}`;
 }
 
 function easeOutBack(x) {
-  const c1 = 1.70158, c3 = c1 + 1;
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
   return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
-}
-
-function disposeTree(obj) {
-  obj.traverse((o) => {
-    if (o.isMesh) {
-      o.geometry?.dispose();
-      if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose());
-      else o.material?.dispose();
-    }
-  });
 }

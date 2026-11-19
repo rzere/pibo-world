@@ -1,0 +1,283 @@
+{
+  "plate": {
+    "pixelWidth": 1280,
+    "pixelHeight": 816,
+    "worldW": 32.0,
+    "worldH": 20.4,
+    "pad": 48
+  },
+  "sprites": [
+    {
+      "id": "tree-west",
+      "src": "assets/painted/sprites/tree-west.png",
+      "pixelWidth": 168,
+      "pixelHeight": 277,
+      "width": 4.2,
+      "height": 6.925,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.672
+      },
+      "x": -12.35,
+      "z": 2.75,
+      "opaqueRatio": 0.315
+    },
+    {
+      "id": "cottage",
+      "src": "assets/painted/sprites/cottage.png",
+      "pixelWidth": 320,
+      "pixelHeight": 255,
+      "width": 8.0,
+      "height": 6.375,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 2.24
+      },
+      "x": -7.0,
+      "z": 0.875,
+      "opaqueRatio": 0.519
+    },
+    {
+      "id": "tree-back",
+      "src": "assets/painted/sprites/tree-back.png",
+      "pixelWidth": 136,
+      "pixelHeight": 240,
+      "width": 3.4,
+      "height": 6.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.476
+      },
+      "x": -3.55,
+      "z": 0.0,
+      "opaqueRatio": 0.326
+    },
+    {
+      "id": "teal-house",
+      "src": "assets/painted/sprites/teal-house.png",
+      "pixelWidth": 225,
+      "pixelHeight": 209,
+      "width": 5.625,
+      "height": 5.225,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 1.463
+      },
+      "x": 0.312,
+      "z": -0.075,
+      "opaqueRatio": 0.321
+    },
+    {
+      "id": "tree-north",
+      "src": "assets/painted/sprites/tree-north.png",
+      "pixelWidth": 65,
+      "pixelHeight": 115,
+      "width": 1.625,
+      "height": 2.875,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.228
+      },
+      "x": 2.312,
+      "z": -1.425,
+      "opaqueRatio": 0.079
+    },
+    {
+      "id": "patio",
+      "src": "assets/painted/sprites/patio.png",
+      "pixelWidth": 163,
+      "pixelHeight": 97,
+      "width": 4.075,
+      "height": 2.425,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.897
+      },
+      "x": 1.038,
+      "z": -0.075,
+      "opaqueRatio": 0.193
+    },
+    {
+      "id": "lamp-patio",
+      "src": "assets/painted/sprites/lamp-patio.png",
+      "pixelWidth": 120,
+      "pixelHeight": 168,
+      "width": 3.0,
+      "height": 4.2,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.3
+      },
+      "x": 4.5,
+      "z": 2.2,
+      "opaqueRatio": 0.504
+    },
+    {
+      "id": "shed",
+      "src": "assets/painted/sprites/shed.png",
+      "pixelWidth": 260,
+      "pixelHeight": 203,
+      "width": 6.5,
+      "height": 5.075,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 1.69
+      },
+      "x": 7.25,
+      "z": 2.275,
+      "opaqueRatio": 0.447
+    },
+    {
+      "id": "crate",
+      "src": "assets/painted/sprites/crate.png",
+      "pixelWidth": 7,
+      "pixelHeight": 7,
+      "width": 0.175,
+      "height": 0.175,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.18
+      },
+      "x": 4.363,
+      "z": 2.225,
+      "opaqueRatio": 0.001
+    },
+    {
+      "id": "tree-shed",
+      "src": "assets/painted/sprites/tree-shed.png",
+      "pixelWidth": 118,
+      "pixelHeight": 212,
+      "width": 2.95,
+      "height": 5.3,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.413
+      },
+      "x": 9.475,
+      "z": 2.5,
+      "opaqueRatio": 0.161
+    },
+    {
+      "id": "lamp-path",
+      "src": "assets/painted/sprites/lamp-path.png",
+      "pixelWidth": 86,
+      "pixelHeight": 62,
+      "width": 2.15,
+      "height": 1.55,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.215
+      },
+      "x": 1.075,
+      "z": 5.225,
+      "opaqueRatio": 0.116
+    },
+    {
+      "id": "lighthouse",
+      "src": "assets/painted/sprites/lighthouse.png",
+      "pixelWidth": 96,
+      "pixelHeight": 109,
+      "width": 2.4,
+      "height": 2.725,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.528
+      },
+      "x": 8.45,
+      "z": -3.75,
+      "opaqueRatio": 0.064
+    },
+    {
+      "id": "arcade",
+      "src": "assets/painted/sprites/arcade.png",
+      "pixelWidth": 159,
+      "pixelHeight": 140,
+      "width": 3.975,
+      "height": 3.5,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.0
+      },
+      "footprint": {
+        "radius": 0.875
+      },
+      "x": 13.087,
+      "z": 3.25,
+      "opaqueRatio": 0.249
+    }
+  ],
+  "layout": {
+    "start": {
+      "x": -2.0,
+      "z": 5.375
+    },
+    "home": {
+      "x": -7.0,
+      "z": 0.0
+    },
+    "tealHouse": {
+      "x": 0.0,
+      "z": -1.5
+    },
+    "lighthouse": {
+      "x": 9.125,
+      "z": -4.0
+    },
+    "lighthousePad": {
+      "x": 8.75,
+      "z": -2.25
+    },
+    "arcade": {
+      "x": 13.5,
+      "z": 3.0
+    },
+    "arcadeDoor": {
+      "x": 13.125,
+      "z": 5.0
+    },
+    "companion": {
+      "x": -14.0,
+      "z": 1.0
+    },
+    "pino": {
+      "x": -13.5,
+      "z": 1.75
+    }
+  }
+}

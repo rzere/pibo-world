@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { clay, blob, ball, box, cyl, cone, shade } from "./materials.js";
 import { LAYOUT, dirOf } from "./layout.js";
 import { mulberry32 } from "./Planet.js";
+import { surfaceQuaternion, tangentToward } from "../core/SphereMath.js";
 
 /**
  * Every handcrafted structure and piece of nature on the starter planet.
@@ -18,6 +19,13 @@ export class Props {
     this.planetariumLights = [];
     this.twinklers = [];
     this.landingRing = null;
+    this.dockRing = null;
+    this.dockBeacon = null;
+    this.tvScreen = null;
+    this.tvBeacon = null;
+    this.lighthouseBeam = null;
+    this.lighthouseColumn = null;
+    this.lighthouseStar = null;
     this.pondWater = null;
     this.bridge = null;
     this.rewardBloom = null;
@@ -38,6 +46,15 @@ export class Props {
     this._collectTwinkles(planetarium);
 
     P.placeOnSurface(shade(buildCafe()), dirOf(LAYOUT.cafe), { yaw: LAYOUT.cafe.yaw });
+
+    const arcade = buildArcade();
+    const arcadeDir = dirOf(LAYOUT.arcade);
+    P.placeOnSurface(shade(arcade), arcadeDir);
+    surfaceQuaternion(
+      arcadeDir,
+      tangentToward(arcadeDir, dirOf(LAYOUT.arcadeDoor)),
+      arcade.quaternion
+    );
     P.placeOnSurface(shade(buildLibrary()), dirOf(LAYOUT.library), { yaw: LAYOUT.library.yaw });
     P.placeOnSurface(shade(buildWindmill()), dirOf(LAYOUT.windmill), { yaw: LAYOUT.windmill.yaw });
     P.placeOnSurface(shade(buildWell()), dirOf(LAYOUT.well), { yaw: LAYOUT.well.yaw });
@@ -47,10 +64,66 @@ export class Props {
     this.pondWater = pond.userData.water;
     P.placeOnSurface(shade(pond, false, true), dirOf(LAYOUT.pond));
 
+    const sand = buildSandIsland(2.15);
+    P.placeOnSurface(shade(sand, false, true), dirOf(LAYOUT.lighthouseIsland));
+
+    const meadow = buildMeadowIsland();
+    P.placeOnSurface(shade(meadow, false, true), dirOf(LAYOUT.meadowIsland));
+
     const pad = buildLandingPad();
     this.landingRing = pad.userData.ring;
     this.landingBeacon = pad.userData.beacon;
     P.placeOnSurface(shade(pad), dirOf(LAYOUT.landing));
+
+    const lighthouse = buildLighthouse();
+    this.tvScreen = lighthouse.userData.screen;
+    this.tvBeacon = lighthouse.userData.beacon;
+    this.lighthouseBeam = lighthouse.userData.beam;
+    this.lighthouseColumn = lighthouse.userData.column;
+    this.lighthouseStar = lighthouse.userData.star;
+    const lhDir = dirOf(LAYOUT.lighthouse);
+    P.placeOnSurface(shade(lighthouse), lhDir);
+    // door (+Z) faces the dock so walking off the pier meets the entrance
+    surfaceQuaternion(
+      lhDir,
+      tangentToward(lhDir, dirOf(LAYOUT.lighthousePad)),
+      lighthouse.quaternion
+    );
+    lighthouse.traverse((o) => {
+      if (o.userData.keepBright) {
+        o.castShadow = false;
+        o.receiveShadow = false;
+      }
+    });
+
+    const dock = buildLighthouseDock();
+    this.dockRing = dock.userData.ring;
+    this.dockBeacon = dock.userData.beacon;
+    const padDir = dirOf(LAYOUT.lighthousePad);
+    P.placeOnSurface(shade(dock), padDir);
+    // +Z of the pier faces the lighthouse so the planks read as a walkway
+    surfaceQuaternion(
+      padDir,
+      tangentToward(padDir, dirOf(LAYOUT.lighthouse)),
+      dock.quaternion
+    );
+
+    for (const spot of LAYOUT.lighthouseSigns ?? []) {
+      const signDir = dirOf(spot);
+      const sign = shade(buildLighthouseSign());
+      P.placeOnSurface(sign, signDir);
+      surfaceQuaternion(
+        signDir,
+        tangentToward(signDir, dirOf(LAYOUT.lighthouse)),
+        sign.quaternion
+      );
+    }
+
+    for (const step of LAYOUT.lighthousePath ?? []) {
+      const lamp = buildLantern(step.lon);
+      P.placeOnSurface(shade(lamp), dirOf(step), { yaw: step.lon });
+      this._collectTwinkles(lamp);
+    }
 
     // nature
     for (const t of LAYOUT.trees) {
@@ -60,6 +133,9 @@ export class Props {
     }
     for (const r of LAYOUT.rocks) {
       P.placeOnSurface(shade(buildRock(r.lon)), dirOf(r), { yaw: r.lon });
+    }
+    for (const r of LAYOUT.seaRocks ?? []) {
+      P.placeOnSurface(shade(buildRock(r.lon + 11)), dirOf(r), { yaw: r.lon });
     }
     for (const f of LAYOUT.flowers) {
       const fl = buildFlower(f.lon);
@@ -145,7 +221,7 @@ export class Props {
       s.mesh.rotation.z = Math.sin(t * 1.6 + s.phase) * s.amp;
     }
 
-    // pond ripples
+    // pond ripples — the open ocean animates on the planet mesh
     if (this.pondWater) {
       const geo = this.pondWater.geometry;
       const pos = geo.attributes.position;
@@ -158,6 +234,20 @@ export class Props {
       geo.computeVertexNormals();
     }
 
+    if (this.tvBeacon) {
+      const p = (Math.sin(t * 3.1) + 1) * 0.5;
+      this.tvBeacon.material.emissiveIntensity = 0.9 + p * 1.1;
+    }
+    if (this.lighthouseBeam) this.lighthouseBeam.rotation.y += dt * 0.85;
+    if (this.lighthouseColumn) {
+      const pulse = 0.55 + (Math.sin(t * 1.6) + 1) * 0.16;
+      this.lighthouseColumn.material.opacity = pulse;
+    }
+    if (this.lighthouseStar) {
+      const s = 1 + Math.sin(t * 2.4) * 0.14;
+      this.lighthouseStar.scale.setScalar(s);
+    }
+
     // landing beacon pulse
     if (this.landingBeacon) {
       const p = (Math.sin(t * 2.0) + 1) * 0.5;
@@ -165,6 +255,12 @@ export class Props {
       this.landingBeacon.scale.setScalar(0.9 + p * 0.18);
     }
     if (this.landingRing) this.landingRing.rotation.z += dt * 0.6;
+    if (this.dockRing) this.dockRing.rotation.z += dt * 0.6;
+    if (this.dockBeacon) {
+      const p = (Math.sin(t * 2.0) + 1) * 0.5;
+      this.dockBeacon.material.emissiveIntensity = 0.55 + p * 1.15;
+      this.dockBeacon.scale.setScalar(0.9 + p * 0.18);
+    }
 
     for (const tw of this.twinklers) {
       const p = (Math.sin(t * 2.4 + tw.phase) + 1) * 0.5;
@@ -354,6 +450,104 @@ function buildPlanetarium(lightRefs) {
   beam.position.y = 1.25;
   beam.rotation.x = Math.PI;
   g.add(beam);
+
+  return g;
+}
+
+function arcadeSignTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext("2d");
+  const paint = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#5a3d86";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#fff6ea";
+    ctx.font = "700 36px Fredoka, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("ARCADE", 128, 34);
+  };
+  paint();
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(() => {
+      paint();
+      tex.needsUpdate = true;
+    });
+  }
+  return tex;
+}
+
+/** Enterable cabinet. Local +Z is the door, aimed at the approach spot. */
+function buildArcade() {
+  const g = new THREE.Group();
+
+  const slab = cyl(1.35, 1.45, 0.12, clay(0x6b4c9a), 8);
+  slab.position.y = 0.06;
+  g.add(slab);
+
+  const body = box(1.55, 1.35, 1.05, clay(0x7b5ea7));
+  body.position.y = 0.8;
+  g.add(body);
+
+  const screen = box(0.92, 0.58, 0.05, new THREE.MeshBasicMaterial({ color: 0x7ee7ff }));
+  screen.position.set(0.12, 1.05, 0.56);
+  g.add(screen);
+
+  const bezel = box(1.05, 0.7, 0.04, clay(0x3d3158));
+  bezel.position.set(0.12, 1.05, 0.53);
+  g.add(bezel);
+
+  const stick = ball(0.07, clay(0xf26f6f), 10);
+  stick.position.set(0.48, 0.62, 0.58);
+  g.add(stick);
+  const stickPost = cyl(0.025, 0.03, 0.1, clay(0xfff0c7), 8);
+  stickPost.position.set(0.48, 0.52, 0.56);
+  g.add(stickPost);
+
+  const door = box(0.36, 0.62, 0.06, clay(0xffc7a3));
+  door.position.set(-0.42, 0.4, 0.56);
+  g.add(door);
+  const knob = ball(0.04, clay(0xf5d06f), 8);
+  knob.position.set(-0.3, 0.38, 0.6);
+  g.add(knob);
+
+  for (let i = 0; i < 6; i++) {
+    const stripe = box(0.24, 0.1, 0.36, i % 2 ? clay(0xf26f6f) : clay(0xfff0c7));
+    stripe.position.set(-0.6 + i * 0.24, 1.52, 0.62);
+    stripe.rotation.x = -0.4;
+    g.add(stripe);
+  }
+
+  const marquee = box(1.45, 0.38, 0.08, new THREE.MeshBasicMaterial({
+    map: arcadeSignTexture(),
+    color: 0xffffff,
+  }));
+  marquee.position.set(0, 1.78, 0.64);
+  g.add(marquee);
+
+  const signPost = cyl(0.05, 0.07, 1.2, clay(0x8f6548), 8);
+  signPost.position.set(0.95, 0.6, 1.35);
+  g.add(signPost);
+  const yardSign = box(1.45, 0.48, 0.08, new THREE.MeshBasicMaterial({
+    map: arcadeSignTexture(),
+    color: 0xffffff,
+  }));
+  yardSign.position.set(0.95, 1.22, 1.35);
+  g.add(yardSign);
+
+  const roof = box(1.7, 0.14, 1.2, clay(0x5a3d86));
+  roof.position.y = 1.58;
+  g.add(roof);
+
+  for (let i = 0; i < 5; i++) {
+    const bulb = ball(0.055, new THREE.MeshBasicMaterial({ color: i % 2 ? 0xfff3a0 : 0xff9a76 }), 8);
+    bulb.position.set(-0.5 + i * 0.25, 1.92, 0.42);
+    g.add(bulb);
+  }
 
   return g;
 }
@@ -560,6 +754,47 @@ function buildPicnic() {
   return g;
 }
 
+function buildSandIsland(radius) {
+  const g = new THREE.Group();
+  const sand = new THREE.Mesh(
+    new THREE.CircleGeometry(radius, 28),
+    clay(0xe6d09a, { roughness: 1 })
+  );
+  sand.rotation.x = -Math.PI / 2;
+  sand.position.y = 0.09;
+  g.add(sand);
+
+  const rng = mulberry32(119);
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    const s = 0.16 + rng() * 0.14;
+    const stone = blob(s, clay(0x9aa0a6), 1);
+    stone.position.set(Math.cos(a) * (radius * 0.92), 0.08, Math.sin(a) * (radius * 0.92));
+    stone.scale.y = 0.65;
+    g.add(stone);
+  }
+  return g;
+}
+
+function buildMeadowIsland() {
+  const g = new THREE.Group();
+  const grass = new THREE.Mesh(
+    new THREE.CircleGeometry(4.4, 28),
+    clay(0x86c56a, { roughness: 1 })
+  );
+  grass.rotation.x = -Math.PI / 2;
+  grass.position.y = 0.08;
+  g.add(grass);
+  const rim = new THREE.Mesh(
+    new THREE.RingGeometry(4.15, 4.7, 28),
+    clay(0xe6d09a, { roughness: 1 })
+  );
+  rim.rotation.x = -Math.PI / 2;
+  rim.position.y = 0.07;
+  g.add(rim);
+  return g;
+}
+
 function buildPond() {
   const g = new THREE.Group();
 
@@ -609,6 +844,217 @@ function buildPond() {
   return g;
 }
 
+function buildLighthouse() {
+  const g = new THREE.Group();
+  const cream = clay(0xfff6ea);
+  const red = clay(0xf26f6f);
+  const stone = clay(0xd8d2c4, { roughness: 1 });
+
+  const hill = new THREE.Mesh(
+    new THREE.SphereGeometry(2.05, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    clay(0x9aa0a6, { roughness: 1 })
+  );
+  hill.scale.y = 0.42;
+  g.add(hill);
+
+  const plaza = cyl(1.55, 1.68, 0.18, stone, 16);
+  plaza.position.y = 0.2;
+  g.add(plaza);
+
+  // tall candy-stripe shaft — reads as a lighthouse from the air
+  const bands = 6;
+  const bandH = 0.92;
+  let y = 0.28;
+  for (let i = 0; i < bands; i++) {
+    const t0 = i / bands;
+    const t1 = (i + 1) / bands;
+    const rBot = 1.12 - t0 * 0.32;
+    const rTop = 1.12 - t1 * 0.32;
+    const band = cyl(rTop, rBot, bandH, i % 2 === 0 ? red : cream, 18);
+    band.position.y = y + bandH / 2;
+    g.add(band);
+    y += bandH;
+  }
+
+  const door = box(0.48, 0.88, 0.12, clay(0xfff0c7, { emissive: 0xffd889, emissiveIntensity: 0.45 }));
+  door.position.set(0, 0.72, 1.12);
+  g.add(door);
+  const knob = ball(0.05, clay(0xf5d06f, { emissive: 0xffd166, emissiveIntensity: 0.4 }), 8);
+  knob.position.set(0.14, 0.7, 1.2);
+  g.add(knob);
+
+  // a couple of glowing windows so it reads as inhabited, not a mast
+  for (const [wy, wa] of [[1.85, 0.55], [2.85, -0.7], [3.85, 2.2]]) {
+    const win = box(0.28, 0.38, 0.08, clay(0xfff3a6, { emissive: 0xffdc5a, emissiveIntensity: 0.7 }));
+    win.position.set(Math.sin(wa) * 0.98, wy, Math.cos(wa) * 0.98);
+    win.lookAt(win.position.x * 2, wy, win.position.z * 2);
+    g.add(win);
+  }
+
+  const gallery = cyl(1.02, 1.02, 0.12, clay(0xfff0c7), 16);
+  gallery.position.y = y + 0.04;
+  g.add(gallery);
+  const rail = new THREE.Mesh(new THREE.TorusGeometry(0.98, 0.045, 8, 22), clay(0xf5d06f));
+  rail.rotation.x = Math.PI / 2;
+  rail.position.y = y + 0.28;
+  g.add(rail);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const post = cyl(0.03, 0.03, 0.28, clay(0xfff0c7), 6);
+    post.position.set(Math.cos(a) * 0.98, y + 0.2, Math.sin(a) * 0.98);
+    g.add(post);
+  }
+
+  const screenMat = clay(0xffffff, {
+    emissive: 0xffffff,
+    emissiveIntensity: 0.9,
+    roughness: 0.28,
+  });
+  const lantern = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.58, 0.58, 0.95, 22, 1, true),
+    screenMat
+  );
+  lantern.position.y = y + 0.72;
+  lantern.userData.keepBright = true;
+  g.add(lantern);
+  g.userData.screen = lantern;
+
+  for (const a of [0, Math.PI * 0.72, Math.PI * 1.28]) {
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(0.36, 18), screenMat);
+    hole.position.set(Math.sin(a) * 0.86, y - 0.55, Math.cos(a) * 0.86);
+    hole.lookAt(hole.position.x * 3, hole.position.y, hole.position.z * 3);
+    hole.userData.keepBright = true;
+    g.add(hole);
+  }
+
+  const glow = ball(0.36, clay(0xfff3a6, { emissive: 0xffdc5a, emissiveIntensity: 1.5 }), 14);
+  glow.position.y = y + 0.72;
+  glow.userData.keepBright = true;
+  g.add(glow);
+  g.userData.beacon = glow;
+
+  const cap = cone(0.72, 0.55, red, 12);
+  cap.position.y = y + 1.38;
+  g.add(cap);
+  const tip = ball(0.12, clay(0xffe27a, { emissive: 0xffd166, emissiveIntensity: 1.0 }), 10);
+  tip.position.y = y + 1.72;
+  tip.userData.keepBright = true;
+  g.add(tip);
+
+  const beamGroup = new THREE.Group();
+  beamGroup.position.y = y + 0.72;
+  const beamMat = clay(0xfff3a6, {
+    emissive: 0xffe08a,
+    emissiveIntensity: 1.25,
+    transparent: true,
+    opacity: 0.48,
+  });
+  for (const sx of [1, -1]) {
+    const beam = cone(0.2, 9.4, beamMat, 18);
+    beam.rotation.z = Math.PI / 2;
+    beam.position.x = sx * 4.5;
+    beam.userData.keepBright = true;
+    beamGroup.add(beam);
+  }
+  g.add(beamGroup);
+  g.userData.beam = beamGroup;
+
+  const lamp = new THREE.PointLight(0xffe08a, 2.4, 18, 1.15);
+  lamp.position.y = y + 0.72;
+  g.add(lamp);
+
+  // A column tall enough to clear the planet's curve. From the north-pole
+  // spawn the tower itself is over the horizon; the upper shaft is not.
+  const columnH = 64;
+  const columnMat = new THREE.MeshBasicMaterial({
+    color: 0xffd56a,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const column = new THREE.Mesh(
+    new THREE.CylinderGeometry(5.2, 0.7, columnH, 20, 1, true),
+    columnMat
+  );
+  column.position.y = y + 0.9 + columnH / 2;
+  column.userData.keepBright = true;
+  column.renderOrder = 2;
+  g.add(column);
+  g.userData.column = column;
+
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0xfff6c8,
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const core = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.35, 0.28, columnH, 12, 1, true),
+    coreMat
+  );
+  core.position.y = column.position.y;
+  core.userData.keepBright = true;
+  core.renderOrder = 2;
+  g.add(core);
+
+  const star = ball(2.15, new THREE.MeshBasicMaterial({ color: 0xfff3a0 }), 16);
+  star.position.y = y + 0.9 + columnH;
+  star.userData.keepBright = true;
+  g.add(star);
+  g.userData.star = star;
+
+  return g;
+}
+
+function lighthouseSignTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 72;
+  const ctx = canvas.getContext("2d");
+  const paint = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#fff6ea";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#e07a55";
+    ctx.font = "700 30px Fredoka, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Lighthouse", 128, 38);
+  };
+  paint();
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(() => {
+      paint();
+      tex.needsUpdate = true;
+    });
+  }
+  return tex;
+}
+
+function buildLighthouseSign() {
+  const g = new THREE.Group();
+  const post = cyl(0.05, 0.07, 0.92, clay(0x8f6548), 8);
+  post.position.y = 0.46;
+  g.add(post);
+
+  const plank = box(1.2, 0.38, 0.07, new THREE.MeshBasicMaterial({
+    map: lighthouseSignTexture(),
+    color: 0xffffff,
+  }));
+  plank.position.y = 0.98;
+  g.add(plank);
+
+  const tip = cone(0.16, 0.32, clay(0xf26f6f), 4);
+  tip.rotation.x = Math.PI / 2;
+  tip.position.set(0, 0.98, 0.46);
+  g.add(tip);
+  return g;
+}
+
 function buildLandingPad() {
   const g = new THREE.Group();
 
@@ -644,6 +1090,60 @@ function buildLandingPad() {
     })
   );
   beacon.position.y = 0.5;
+  g.add(beacon);
+  g.userData.beacon = beacon;
+
+  return g;
+}
+
+function buildLighthouseDock() {
+  const g = new THREE.Group();
+  const wood = clay(0xb98a55);
+  const plank = clay(0xc8a06a);
+
+  const deck = cyl(1.55, 1.68, 0.16, plank, 10);
+  deck.position.y = 0.1;
+  g.add(deck);
+  const inner = cyl(1.12, 1.12, 0.06, clay(0xfff0c7), 10);
+  inner.position.y = 0.2;
+  g.add(inner);
+
+  const walk = box(1.2, 0.12, 1.85, plank);
+  walk.position.set(0, 0.12, 1.85);
+  g.add(walk);
+  for (let i = 0; i < 4; i++) {
+    const board = box(0.22, 0.05, 2.15, wood);
+    board.position.set(-0.45 + i * 0.3, 0.18, 1.55);
+    g.add(board);
+  }
+  for (const sx of [-0.7, 0.7]) {
+    const post = cyl(0.06, 0.07, 0.55, wood, 8);
+    post.position.set(sx, 0.32, 2.45);
+    g.add(post);
+  }
+
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: 0x8fd7ff,
+    emissive: 0x66c6ff,
+    emissiveIntensity: 1.15,
+    roughness: 0.4,
+  });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.055, 12, 40), ringMat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.24;
+  g.add(ring);
+  g.userData.ring = ring;
+
+  const beacon = ball(
+    0.2,
+    new THREE.MeshStandardMaterial({
+      color: 0xbfe9ff,
+      emissive: 0x8fd7ff,
+      emissiveIntensity: 1.05,
+      roughness: 0.3,
+    })
+  );
+  beacon.position.y = 0.48;
   g.add(beacon);
   g.userData.beacon = beacon;
 
@@ -793,26 +1293,216 @@ function buildStarStone(seed = 0) {
   return g;
 }
 
-function buildTree(seed = 0) {
+// Shared clay palette so every tree stays in the diorama and we don't
+// allocate a new material per leaf.
+const WOOD = clay(0xc48955);
+const WOOD_DARK = clay(0x8d5a32);
+const LEAF_BRIGHT = clay(0x58c244);
+const LEAF_HI = clay(0x96e56a);
+const LEAF_DEEP = clay(0x348f30);
+const LEAF_LIME = clay(0xc6de55);
+const LEAF_LIME_MID = clay(0xa4c83c);
+const LEAF_LIME_DEEP = clay(0x6ea832);
+const GRASS = clay(0x4caf45);
+const GRASS_LT = clay(0x86d25a);
+const _UP = new THREE.Vector3(0, 1, 0);
+const _LIMB = new THREE.Vector3();
+
+/** A tapered branch from `from` to `to` in the parent's local space. */
+function addLimb(parent, from, to, rBase, rTip, mat) {
+  _LIMB.subVectors(to, from);
+  const len = _LIMB.length();
+  if (len < 1e-4) return null;
+  const limb = cyl(Math.max(rTip, 0.025), Math.max(rBase, 0.025), len, mat, 7);
+  limb.position.copy(from).add(to).multiplyScalar(0.5);
+  _LIMB.multiplyScalar(1 / len);
+  limb.quaternion.setFromUnitVectors(_UP, _LIMB);
+  parent.add(limb);
+  return limb;
+}
+
+function addRoots(parent, rng, n = 4) {
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + rng() * 0.35;
+    const from = new THREE.Vector3(Math.cos(a) * 0.1, 0.2, Math.sin(a) * 0.1);
+    const to = new THREE.Vector3(Math.cos(a) * (0.38 + rng() * 0.16), 0.02, Math.sin(a) * (0.38 + rng() * 0.16));
+    addLimb(parent, from, to, 0.13, 0.045, WOOD_DARK);
+  }
+}
+
+function addGrass(parent, rng, n = 6) {
+  for (let i = 0; i < n; i++) {
+    const a = rng() * Math.PI * 2;
+    const d = 0.18 + rng() * 0.4;
+    const tuft = cone(0.04 + rng() * 0.02, 0.14 + rng() * 0.12, rng() > 0.45 ? GRASS_LT : GRASS, 4);
+    tuft.position.set(Math.cos(a) * d, 0.05, Math.sin(a) * d);
+    tuft.rotation.z = (rng() - 0.5) * 0.55;
+    tuft.rotation.x = (rng() - 0.5) * 0.4;
+    parent.add(tuft);
+  }
+}
+
+/** Big rounded canopy with smaller clay bumps, like a hand-sculpted cloud. */
+function puffCluster(r, rng) {
   const g = new THREE.Group();
-  const rng = mulberry32(Math.floor(seed * 97) + 3);
-  const h = 1.3 + rng() * 0.6;
-  const trunk = cyl(0.16, 0.24, h, clay(0x9b6a43), 10);
-  trunk.position.y = h / 2;
-  g.add(trunk);
+  const main = blob(r, LEAF_BRIGHT, 1);
+  main.scale.set(1.06, 0.86, 1.02);
+  g.add(main);
+  const bumps = 6;
+  for (let i = 0; i < bumps; i++) {
+    const a = rng() * Math.PI * 2;
+    const elev = 0.15 + rng() * 1.15;
+    const dir = new THREE.Vector3(Math.cos(a) * Math.cos(elev), Math.sin(elev), Math.sin(a) * Math.cos(elev)).normalize();
+    const bump = blob(r * (0.26 + rng() * 0.16), dir.y > 0.45 ? LEAF_HI : dir.y < 0.05 ? LEAF_DEEP : LEAF_BRIGHT, 0);
+    bump.position.copy(dir).multiplyScalar(r * 0.76);
+    g.add(bump);
+  }
+  return g;
+}
+
+/** Layered yellow-green clay leaves sitting on a solid canopy. */
+function leafBall(r, rng) {
+  const g = new THREE.Group();
+  const core = blob(r * 0.8, LEAF_LIME_MID, 1);
+  core.scale.set(1.08, 0.7, 1.02);
+  g.add(core);
+  const layers = [
+    { y: r * 0.02, rad: r * 0.7, n: 8, size: 0.32, tilt: 0.35 },
+    { y: r * 0.32, rad: r * 0.58, n: 7, size: 0.3, tilt: 0.85 },
+    { y: r * 0.58, rad: r * 0.32, n: 5, size: 0.26, tilt: 1.35 },
+  ];
+  for (const layer of layers) {
+    const spin = rng() * Math.PI;
+    for (let i = 0; i < layer.n; i++) {
+      const a = spin + (i / layer.n) * Math.PI * 2;
+      const dir = new THREE.Vector3(Math.cos(a), layer.tilt, Math.sin(a)).normalize();
+      const mat = i % 2 === 0 ? LEAF_LIME : layer.y > r * 0.4 ? LEAF_LIME : LEAF_LIME_DEEP;
+      const leaf = blob(r * layer.size, mat, 0);
+      leaf.scale.set(1.55, 0.4, 1.05);
+      leaf.position.set(Math.cos(a) * layer.rad, layer.y, Math.sin(a) * layer.rad);
+      leaf.quaternion.setFromUnitVectors(_UP, dir);
+      leaf.rotateY(rng() * 0.4);
+      g.add(leaf);
+    }
+  }
+  return g;
+}
+
+/**
+ * Chunky cloud tree: twisted trunk, root flares, and several puffy
+ * bright-green clusters (reference 1).
+ */
+function treeCloud(rng) {
+  const g = new THREE.Group();
+  const mid = new THREE.Vector3((rng() - 0.5) * 0.16, 0.52, (rng() - 0.5) * 0.16);
+  const top = new THREE.Vector3((rng() - 0.5) * 0.22, 1.02, (rng() - 0.5) * 0.14);
+  addLimb(g, new THREE.Vector3(0, 0.02, 0), mid, 0.34, 0.24, WOOD);
+  addLimb(g, mid, top, 0.22, 0.16, WOOD);
+  addRoots(g, rng, 4 + Math.floor(rng() * 2));
 
   const crown = new THREE.Group();
-  crown.position.y = h;
-  const foliageColor = rng() > 0.5 ? 0x7bbf6a : 0x6aa85c;
-  const f1 = blob(0.8 + rng() * 0.2, clay(foliageColor, { flat: true }), 1);
-  f1.position.y = 0.5;
-  crown.add(f1);
-  const f2 = blob(0.55, clay(0x8ccf78, { flat: true }), 1);
-  f2.position.set(0.4, 0.2, 0.2);
-  crown.add(f2);
-  crown.userData.sway = 0.05; // whole crown sways gently
+  crown.position.copy(top);
+  const clusters = 5;
+  for (let i = 0; i < clusters; i++) {
+    const a = (i / clusters) * Math.PI * 2 + rng() * 0.4;
+    const tip = new THREE.Vector3(Math.cos(a) * (0.28 + rng() * 0.32), 0.42 + rng() * 0.48, Math.sin(a) * (0.28 + rng() * 0.32));
+    addLimb(crown, new THREE.Vector3(0, 0.06, 0), tip, 0.13, 0.08, WOOD);
+    const puff = puffCluster(0.42 + rng() * 0.12, rng);
+    puff.position.copy(tip);
+    crown.add(puff);
+  }
+  const crest = new THREE.Vector3((rng() - 0.5) * 0.16, 0.95 + rng() * 0.15, (rng() - 0.5) * 0.16);
+  addLimb(crown, new THREE.Vector3(0, 0.2, 0), crest, 0.11, 0.07, WOOD);
+  const topPuff = puffCluster(0.5 + rng() * 0.08, rng);
+  topPuff.position.copy(crest);
+  crown.add(topPuff);
+  crown.userData.sway = 0.035;
   g.add(crown);
+  addGrass(g, rng, 7);
+  return g;
+}
 
+/**
+ * Leaning tree: a curved trunk, one side branch, and layered
+ * yellow-green leaf clusters (reference 2).
+ */
+function treeLean(rng) {
+  const g = new THREE.Group();
+  const lean = rng() > 0.5 ? 1 : -1;
+  const zSign = rng() > 0.5 ? 1 : -1;
+  const segs = 6;
+  const pts = [];
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    pts.push(new THREE.Vector3(
+      lean * (0.08 * t + 0.95 * t * t),
+      0.04 + t * 1.45,
+      zSign * Math.sin(t * Math.PI) * 0.16,
+    ));
+  }
+  for (let i = 0; i < segs; i++) {
+    const t0 = i / segs;
+    const t1 = (i + 1) / segs;
+    addLimb(g, pts[i], pts[i + 1], 0.3 * (1 - t0 * 0.62), 0.3 * (1 - t1 * 0.62), WOOD);
+  }
+
+  const from = pts[2];
+  const sideTip = from.clone().add(new THREE.Vector3(-lean * 0.58, 0.18, zSign * 0.16));
+  addLimb(g, from, sideTip, 0.1, 0.06, WOOD);
+  const side = new THREE.Group();
+  side.position.copy(sideTip);
+  side.add(leafBall(0.34, rng));
+  side.userData.sway = 0.05;
+  g.add(side);
+
+  const crown = new THREE.Group();
+  const end = pts[segs];
+  crown.position.set(end.x + lean * 0.12, end.y + 0.18, end.z);
+  crown.add(leafBall(0.72 + rng() * 0.08, rng));
+  crown.userData.sway = 0.03;
+  g.add(crown);
+  addGrass(g, rng, 5);
+  addRoots(g, rng, 3);
+  return g;
+}
+
+/** A shorter fork: two thick arms, each ending in one big puff. */
+function treeFork(rng) {
+  const g = new THREE.Group();
+  const top = new THREE.Vector3((rng() - 0.5) * 0.08, 0.62, (rng() - 0.5) * 0.08);
+  addLimb(g, new THREE.Vector3(0, 0.02, 0), top, 0.32, 0.2, WOOD);
+  addRoots(g, rng, 4);
+
+  const crown = new THREE.Group();
+  crown.position.copy(top);
+  const arms = [
+    new THREE.Vector3(-0.48, 0.72, 0.08),
+    new THREE.Vector3(0.5, 0.64, -0.06),
+    new THREE.Vector3(0.05, 0.95, 0.28),
+  ];
+  arms.forEach((tip, i) => {
+    const wobble = tip.clone();
+    wobble.x += (rng() - 0.5) * 0.12;
+    wobble.z += (rng() - 0.5) * 0.12;
+    addLimb(crown, new THREE.Vector3(0, 0.05, 0), wobble, i === 2 ? 0.09 : 0.14, 0.07, WOOD);
+    const puff = puffCluster(i === 2 ? 0.36 : 0.5 + rng() * 0.06, rng);
+    puff.position.copy(wobble);
+    crown.add(puff);
+  });
+  crown.userData.sway = 0.04;
+  g.add(crown);
+  addGrass(g, rng, 6);
+  return g;
+}
+
+function buildTree(seed = 0) {
+  const rng = mulberry32(Math.floor(seed * 97) + 3);
+  const kind = Math.floor(rng() * 3);
+  const model = kind === 0 ? treeCloud(rng) : kind === 1 ? treeLean(rng) : treeFork(rng);
+  const g = new THREE.Group();
+  model.rotation.y = rng() * Math.PI * 2;
+  model.scale.setScalar(0.84 + rng() * 0.32);
+  g.add(model);
   return g;
 }
 

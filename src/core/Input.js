@@ -15,6 +15,11 @@ export class Input {
 
     target.addEventListener("keydown", (e) => {
       if (!this.enabled) return;
+      if (isTypingTarget(e.target)) {
+        // still let Esc leave a hub even while a prompt is focused
+        if (!e.repeat && e.code === "Escape") this._pressed.add(e.code);
+        return;
+      }
       // avoid page scroll on arrows/space
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
         e.preventDefault();
@@ -87,4 +92,10 @@ export class Input {
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
+}
+
+function isTypingTarget(el) {
+  if (!el || el === window || el === document.body) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
 }

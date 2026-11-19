@@ -94,6 +94,17 @@ export class Ufo {
     this.onLanded = onLanded || null;
   }
 
+  /** Park immediately, wherever the pot currently is in its flight. */
+  settle(dir, forward) {
+    this.mode = "parked";
+    this.onLanded = null;
+    this.phaseT = 0;
+    this.altitude = PARKED_ALT;
+    this.parkAt(dir, forward);
+    this._setPilotVisible(false);
+    this._setGlow(0.55);
+  }
+
   parkAt(dir, forward) {
     this.dir.copy(dir).normalize();
     this.forward.copy(forward);

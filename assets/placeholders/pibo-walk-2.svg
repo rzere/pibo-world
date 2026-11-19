@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="260" viewBox="0 0 200 260" fill="none">
+
+  <ellipse cx="100" cy="228" rx="46" ry="10" fill="#7ea85a" opacity="0.45"/>
+  <ellipse cx="71.2" cy="214" rx="12" ry="7" fill="#e3b63e" stroke="#5a4638" stroke-width="4"/>
+  <ellipse cx="128.8" cy="214" rx="12" ry="7" fill="#e3b63e" stroke="#5a4638" stroke-width="4"/>
+  <path d="M62 117.03999999999999 Q54 199.72 70 199.72 H130 Q146 199.72 138 117.03999999999999" fill="#f6d15a" stroke="#5a4638" stroke-width="6" stroke-linejoin="round"/>
+  <ellipse cx="100" cy="117.03999999999999" rx="40" ry="10" fill="#e3b63e" stroke="#5a4638" stroke-width="5"/>
+  <ellipse cx="100" cy="121.03999999999999" rx="28" ry="7" fill="#6b4a32"/>
+  <ellipse cx="78" cy="153.04" rx="7" ry="4" fill="#f7b7b0" opacity="0.9"/>
+  <ellipse cx="122" cy="153.04" rx="7" ry="4" fill="#f7b7b0" opacity="0.9"/>
+  <ellipse cx="86" cy="145.04" rx="5" ry="8" fill="#5a4638"/>
+  <ellipse cx="114" cy="145.04" rx="5" ry="8" fill="#5a4638"/>
+  <path d="M92 161.04 Q100 169.04 108 161.04" stroke="#5a4638" stroke-width="3" stroke-linecap="round"/>
+  <path d="M46.2 147.04 Q28.4 127.03999999999999 40.2 113.03999999999999" stroke="#f6d15a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M153.8 147.04 Q171.6 127.03999999999999 159.8 113.03999999999999" stroke="#f6d15a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M46.2 147.04 Q28.4 127.03999999999999 40.2 113.03999999999999" fill="none" stroke="#5a4638" stroke-width="4" stroke-linecap="round"/>
+  <path d="M153.8 147.04 Q171.6 127.03999999999999 159.8 113.03999999999999" fill="none" stroke="#5a4638" stroke-width="4" stroke-linecap="round"/>
+  <path d="M92 115.03999999999999 Q78 67.03999999999999 88 39.03999999999999" stroke="#5fa84a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M108 115.03999999999999 Q122 63.03999999999999 112 31.039999999999992" stroke="#7fbf62" stroke-width="7" stroke-linecap="round"/>
+  <path d="M100 113.03999999999999 Q100 57.03999999999999 100 25.039999999999992" stroke="#8ed06c" stroke-width="7" stroke-linecap="round"/>
+  <ellipse cx="86" cy="39.03999999999999" rx="12" ry="6" fill="#7fbf62" stroke="#5a4638" stroke-width="3" transform="rotate(-30 86 39.03999999999999)"/>
+  <ellipse cx="114" cy="31.039999999999992" rx="12" ry="6" fill="#5fa84a" stroke="#5a4638" stroke-width="3" transform="rotate(24 114 31.039999999999992)"/>
+  <ellipse cx="100" cy="23.039999999999992" rx="11" ry="6" fill="#b6de8e" stroke="#5a4638" stroke-width="3"/>
+
+</svg>

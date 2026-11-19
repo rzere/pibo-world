@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="320" viewBox="0 0 420 250" fill="none">
+
+  <ellipse cx="210" cy="210" rx="150" ry="22" fill="#8fb56a" opacity="0.35"/>
+  <path d="M40 150 L250 110 L370 170 L150 214 Z" fill="#f06458" stroke="#5a4638" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M70 156 L250 124 L340 168 L150 204" fill="none" stroke="#fff7f2" stroke-width="10" opacity="0.9"/>
+  <path d="M96 162 L236 136" stroke="#fff7f2" stroke-width="10"/>
+  <path d="M118 176 L250 150" stroke="#fff7f2" stroke-width="10"/>
+  <path d="M40 150 L250 110 L370 170 L150 214 Z" fill="none" stroke="#5a4638" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M168 78 L210 70 L230 118 L186 128 Z" fill="#c4925a" stroke="#5a4638" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M176 92 H222" stroke="#a87840" stroke-width="3"/>
+  <ellipse cx="300" cy="150" rx="16" ry="8" fill="#f6e7bf" stroke="#5a4638" stroke-width="4"/>
+  <circle cx="292" cy="146" r="5" fill="#f28b8b" stroke="#5a4638" stroke-width="2"/>
+  <circle cx="306" cy="148" r="4" fill="#8ec86e" stroke="#5a4638" stroke-width="2"/>
+
+</svg>

@@ -1,5 +1,15 @@
 import { PLANTS } from "../data/plants.js";
+import { STUDIO_PROMPTS } from "../data/studioPrompts.js";
+import { lockedLabel } from "../data/planets.js";
 import { Joystick } from "./Joystick.js";
+import { IdeaPanel } from "./IdeaPanel.js";
+import { WorldMap } from "./WorldMap.js";
+import { ArcadeEditor } from "./ArcadeEditor.js";
+import { LibraryPanel } from "./LibraryPanel.js";
+import { ArtRoom } from "./ArtRoom.js";
+
+const DOOR_ICON = `<svg class="action-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 8h18a3 3 0 0 1 3 3v29H11V11a3 3 0 0 1 3-3z" fill="#fff6ee" stroke="#3a2a24" stroke-width="3.5" stroke-linejoin="round"/><circle cx="29" cy="26" r="2.2" fill="#3a2a24"/></svg>`;
+const CLOSE_ICON = `<svg class="action-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 16l16 16M32 16L16 32" fill="none" stroke="#3a2a24" stroke-width="4" stroke-linecap="round"/></svg>`;
 
 /**
  * Thin controller over the HTML overlay. Keeps the DOM out of gameplay code:
@@ -33,12 +43,66 @@ export class UI {
       flightPad: document.getElementById("flight-pad"),
       climbUp: document.getElementById("climb-up"),
       climbDown: document.getElementById("climb-down"),
+      studio: document.getElementById("studio-hud"),
+      studioPrompt: document.getElementById("studio-prompt"),
+      studioChips: document.getElementById("studio-chips"),
+      studioGenerate: document.getElementById("studio-generate"),
+      studioLeave: document.getElementById("studio-leave"),
+      studioStatus: document.getElementById("studio-status"),
+      studioIdea: document.getElementById("studio-idea"),
+      lighthouseGo: document.getElementById("lighthouse-go"),
+      arcadeGo: document.getElementById("arcade-go"),
+      libraryGo: document.getElementById("library-go"),
+      mapBtn: document.getElementById("map-btn"),
+      lighthouseMarker: document.getElementById("lighthouse-marker"),
+      lighthouseDistance: document.getElementById("lighthouse-distance"),
+      lighthouseArrow: document.querySelector("#lighthouse-marker .lighthouse-arrow"),
     };
+
+    this.ideas = new IdeaPanel({
+      root: document.getElementById("idea-panel"),
+      onUse: (idea) => this._acceptIdea(idea),
+    });
+    this.map = new WorldMap({
+      root: document.getElementById("map-overlay"),
+      onTravel: (id) => this.onMapTravel?.(id),
+      onLocked: (planet) => this.toast(`${planet.name} — ${lockedLabel(planet)}`, 1800),
+      onClose: () => this._syncActionBtn(),
+    });
+    this.arcade = new ArcadeEditor({
+      root: document.getElementById("arcade-overlay"),
+      onClose: () => {
+        document.documentElement.classList.remove("in-arcade");
+        this._syncActionBtn();
+        this.onArcadeLeave?.();
+      },
+    });
+    this.library = new LibraryPanel({
+      root: document.getElementById("library-overlay"),
+      onClose: () => {
+        document.documentElement.classList.remove("in-library");
+        this._syncActionBtn();
+        this.onLibraryLeave?.();
+      },
+    });
+    this.art = new ArtRoom({
+      root: document.getElementById("art-overlay"),
+      onClose: () => {
+        document.documentElement.classList.remove("in-art");
+        this._syncActionBtn();
+        this.onArtLeave?.();
+      },
+      onChange: (look) => this.onArtChange?.(look),
+    });
+    this.lastIdea = null;
 
     this.input = null;
     this.joystick = null;
     this._onPick = null;
     this._onLetterClose = null;
+    this._onStudioGenerate = null;
+    this._onStudioLeave = null;
+    this._studioBusy = false;
     this._collected = new Map(); // id -> count
     this._toastTimer = null;
     this._touchUi = false;
@@ -47,6 +111,26 @@ export class UI {
     this._renderCollection();
 
     this.el.collectionBtn.addEventListener("click", () => this.toggleCollection());
+    this.el.lighthouseGo?.addEventListener("click", (e) => {
+      this.onGoToLighthouse?.();
+      e.currentTarget.blur();
+      document.getElementById("scene")?.focus();
+    });
+    this.el.arcadeGo?.addEventListener("click", (e) => {
+      this.onGoToArcade?.();
+      e.currentTarget.blur();
+      document.getElementById("scene")?.focus();
+    });
+    this.el.libraryGo?.addEventListener("click", (e) => {
+      this.onGoToLibrary?.();
+      e.currentTarget.blur();
+      document.getElementById("scene")?.focus();
+    });
+    this.el.mapBtn?.addEventListener("click", () => {
+      if (this.isMapOpen) this.closeMap();
+      else this.openMap();
+    });
+    this._bindStudio();
   }
 
   /**
@@ -93,6 +177,10 @@ export class UI {
     }
   }
 
+  useTouchControls() {
+    this._enableTouchUi();
+  }
+
   _enableTouchUi() {
     if (this._touchUi) return;
     this._touchUi = true;
@@ -105,7 +193,28 @@ export class UI {
 
   _onAction() {
     if (!this.input) return;
-    if (this.isPanelOpen) this.closePanel();
+    if (this.isArtOpen) {
+      this.closeArt();
+      return;
+    }
+    if (this.isLibraryOpen) {
+      this.closeLibrary();
+      return;
+    }
+    if (this.isArcadeOpen) {
+      this.closeArcade();
+      return;
+    }
+    if (this.isMapOpen) {
+      this.closeMap();
+      return;
+    }
+    if (this.isIdeaOpen) {
+      this.closeIdeas();
+      return;
+    }
+    if (this.isStudioOpen) this._onStudioLeave?.();
+    else if (this.isPanelOpen) this.closePanel();
     else if (this.isModalOpen) this.closeFact();
     else this.input.press("KeyE");
   }
@@ -113,15 +222,15 @@ export class UI {
   _syncActionBtn() {
     const btn = this.el.actionBtn;
     if (!btn) return;
-    if (this.isModalOpen) {
-      btn.textContent = "back";
+    if (this.isArtOpen || this.isLibraryOpen || this.isArcadeOpen || this.isMapOpen || this.isIdeaOpen || this.isStudioOpen || this.isModalOpen) {
+      btn.innerHTML = CLOSE_ICON;
       btn.classList.add("close-mode");
       btn.classList.remove("ready");
       btn.setAttribute("aria-label", "Close");
     } else {
-      btn.textContent = "E";
+      btn.innerHTML = DOOR_ICON;
       btn.classList.remove("close-mode");
-      btn.setAttribute("aria-label", "Interact");
+      btn.setAttribute("aria-label", "Enter");
     }
   }
 
@@ -140,15 +249,21 @@ export class UI {
   }
 
   hideIntro() {
-    if (this.el.intro.style.opacity === "0") return;
-    this.el.intro.style.opacity = "0";
-    setTimeout(() => this.el.intro.classList.add("hidden"), 1200);
+    // The title used to sit in the sky. It is not drawn.
+    this.el.intro?.classList.add("hidden");
   }
 
   /* prompt --------------------------------------------------------- */
-  setPrompt(label) {
-    this.el.promptLabel.textContent = label;
-    this.el.prompt.classList.remove("hidden");
+  setPrompt() {
+    if (this.el.promptLabel) this.el.promptLabel.textContent = "";
+    const phone = document.documentElement.classList.contains("phone-landscape")
+      || document.documentElement.classList.contains("touch-ui");
+    // Phones tap the round door button. Keyboards get the E key cap.
+    this.el.prompt.classList.toggle("hidden", phone);
+    if (phone && this.el.actionBtn) {
+      this.el.actionBtn.innerHTML = DOOR_ICON;
+      this.el.actionBtn.setAttribute("aria-label", "Enter");
+    }
     this.el.actionBtn.classList.add("ready");
   }
   hidePrompt() {
@@ -228,6 +343,209 @@ export class UI {
   closeModals() {
     this.closePanel();
     this.closeFact();
+    this.closeMap();
+    this.closeArcade();
+    this.closeLibrary();
+    this.closeArt();
+  }
+
+  /* library -------------------------------------------------------- */
+  get isLibraryOpen() {
+    return !!this.library?.isOpen;
+  }
+
+  openLibrary() {
+    this.closeMap();
+    this.closeCollection();
+    this.library?.open();
+    document.documentElement.classList.add("in-library");
+    this.hidePrompt();
+    this._syncActionBtn();
+  }
+
+  closeLibrary() {
+    this.library?.close();
+  }
+
+  /* art room ------------------------------------------------------- */
+  get isArtOpen() {
+    return !!this.art?.isOpen;
+  }
+
+  openArt(view) {
+    this.closeMap();
+    this.closeCollection();
+    this.art?.open(view);
+    document.documentElement.classList.add("in-art");
+    this.hidePrompt();
+    this._syncActionBtn();
+  }
+
+  closeArt() {
+    this.art?.close();
+    document.documentElement.classList.remove("in-art");
+    this._syncActionBtn();
+  }
+
+  /* arcade editor -------------------------------------------------- */
+  get isArcadeOpen() {
+    return !!this.arcade?.isOpen;
+  }
+
+  openArcade() {
+    this.closeMap();
+    this.closeCollection();
+    this.arcade?.open();
+    document.documentElement.classList.add("in-arcade");
+    this.hidePrompt();
+    this._syncActionBtn();
+  }
+
+  closeArcade() {
+    this.arcade?.close();
+  }
+
+  /* world map ------------------------------------------------------ */
+  get isMapOpen() {
+    return !!this.map?.isOpen;
+  }
+
+  openMap() {
+    this.closeCollection();
+    this.map.open(this.onMapHere?.() ?? { lat: 0, lon: 0 });
+    this.el.mapBtn?.setAttribute("aria-expanded", "true");
+    this._syncActionBtn();
+  }
+
+  closeMap() {
+    this.map?.close();
+    this.el.mapBtn?.setAttribute("aria-expanded", "false");
+    this._syncActionBtn();
+  }
+
+  /* lighthouse guide ----------------------------------------------- */
+  setLighthouseGuide({ hidden } = {}) {
+    // The travel buttons are the way to the lighthouse. No distance chip on the island.
+    const marker = this.el.lighthouseMarker;
+    if (marker) {
+      marker.classList.add("hidden");
+      marker.setAttribute("aria-hidden", "true");
+    }
+    const indoors = !!hidden && (this.isStudioOpen || this.isArcadeOpen || this.isLibraryOpen || this.isArtOpen);
+    this.el.lighthouseGo?.classList.toggle("hidden", indoors);
+  }
+
+  /* screen studio -------------------------------------------------- */
+  get isStudioOpen() {
+    return this.el.studio && !this.el.studio.classList.contains("hidden");
+  }
+  get isStudioTyping() {
+    return this.isStudioOpen && document.activeElement === this.el.studioPrompt;
+  }
+
+  _bindStudio() {
+    const hud = this.el.studio;
+    if (!hud) return;
+    this._renderStudioChips();
+    this.el.studioGenerate.addEventListener("click", () => this.submitStudio());
+    this.el.studioLeave.addEventListener("click", () => this._onStudioLeave?.());
+    this.el.studioIdea?.addEventListener("click", () => this.openIdeas());
+    this.el.studioPrompt.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        this.submitStudio();
+      }
+    });
+  }
+
+  _renderStudioChips() {
+    const wrap = this.el.studioChips;
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    for (const item of STUDIO_PROMPTS) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "studio-chip";
+      chip.textContent = item.label;
+      chip.addEventListener("click", () => {
+        this.el.studioPrompt.value = item.text;
+        this.el.studioPrompt.focus();
+      });
+      wrap.appendChild(chip);
+    }
+  }
+
+  /* idea generator -------------------------------------------------- */
+  get isIdeaOpen() {
+    return !!this.ideas?.isOpen;
+  }
+
+  openIdeas() {
+    if (!this.isStudioOpen) return;
+    this.el.studioPrompt?.blur();
+    this.ideas.open();
+    this._syncActionBtn();
+  }
+
+  closeIdeas() {
+    this.ideas?.close();
+    this._syncActionBtn();
+  }
+
+  _acceptIdea(idea) {
+    this.lastIdea = idea;
+    if (this.el.studioPrompt) {
+      this.el.studioPrompt.value = idea.prompt;
+    }
+    this.setStudioStatus(`Using your idea · ${idea.sentence}`);
+    this.closeIdeas();
+    window.dispatchEvent(new CustomEvent("pibo-idea", { detail: idea }));
+  }
+
+  openStudio({ onGenerate, onLeave } = {}) {
+    this.closeMap();
+    this.closeArcade();
+    this.closeLibrary();
+    this._onStudioGenerate = onGenerate || null;
+    this._onStudioLeave = onLeave || null;
+    this._studioBusy = false;
+    this.el.studio.classList.remove("hidden");
+    this.el.studioGenerate.disabled = false;
+    this.setStudioStatus("Type a sentence, then generate");
+    document.documentElement.classList.add("in-studio");
+    this.hidePrompt();
+    this._syncActionBtn();
+  }
+
+  closeStudio() {
+    this.closeIdeas();
+    this.el.studio.classList.add("hidden");
+    this._onStudioGenerate = null;
+    this._onStudioLeave = null;
+    this._studioBusy = false;
+    document.documentElement.classList.remove("in-studio");
+    this._syncActionBtn();
+  }
+
+  submitStudio() {
+    if (!this.isStudioOpen || this._studioBusy || this.isIdeaOpen) return;
+    const prompt = (this.el.studioPrompt.value || "").trim();
+    if (!prompt) {
+      this.setStudioStatus("Type a little English sentence first");
+      this.el.studioPrompt.focus();
+      return;
+    }
+    this._onStudioGenerate?.(prompt);
+  }
+
+  setStudioBusy(on) {
+    this._studioBusy = !!on;
+    if (this.el.studioGenerate) this.el.studioGenerate.disabled = !!on;
+    this.el.studioGenerate.textContent = on ? "Making…" : "Generate";
+  }
+
+  setStudioStatus(msg) {
+    if (this.el.studioStatus) this.el.studioStatus.textContent = msg || "";
   }
 
   /* collection ----------------------------------------------------- */

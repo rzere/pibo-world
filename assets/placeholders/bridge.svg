@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="220" viewBox="0 0 420 200" fill="none">
+
+  <path d="M30 140 Q210 40 390 140" fill="none" stroke="#c4925a" stroke-width="22" stroke-linecap="round"/>
+  <path d="M30 140 Q210 40 390 140" fill="none" stroke="#5a4638" stroke-width="6"/>
+  <path d="M70 150 V110 M140 118 V78 M210 96 V58 M280 118 V78 M350 150 V110" stroke="#a87840" stroke-width="6" stroke-linecap="round"/>
+  <path d="M40 150 Q210 60 380 150" fill="none" stroke="#e7c48a" stroke-width="4"/>
+
+</svg>

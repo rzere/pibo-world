@@ -23,6 +23,14 @@ export function latLonToDir(latDeg, lonDeg) {
   return new THREE.Vector3(s * Math.cos(theta), Math.cos(phi), s * Math.sin(theta));
 }
 
+/** Inverse of latLonToDir. lat is degrees from the north pole, lon is degrees. */
+export function latLonOf(dir) {
+  const y = THREE.MathUtils.clamp(dir.y, -1, 1);
+  const lat = THREE.MathUtils.radToDeg(Math.acos(y));
+  const lon = THREE.MathUtils.radToDeg(Math.atan2(dir.z, dir.x));
+  return { lat, lon };
+}
+
 /** A stable tangent (points roughly "south") at a given surface direction. */
 export function tangentAt(dir, ref = _up) {
   const up = dir.clone().normalize();

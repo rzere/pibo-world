@@ -9,7 +9,7 @@ export class Environment {
   constructor(scene, planetRadius = 10) {
     this.t = 0;
 
-    const hemi = new THREE.HemisphereLight(0xfff3dd, 0x8fb98a, 0.85);
+    const hemi = new THREE.HemisphereLight(0xfff3dd, 0x6aa8a0, 0.85);
     scene.add(hemi);
 
     const sun = new THREE.DirectionalLight(0xfff1cf, 1.55);
