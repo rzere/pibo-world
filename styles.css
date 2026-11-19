@@ -2018,3 +2018,60 @@ html.phone-landscape .world-btn { padding: 5px 9px; font-size: 12px; }
   border-radius: 999px;
 }
 .art-walker-name[hidden] { display: none; }
+
+/* ---------- Top menu: emoji + word, stacked on the left ---------- */
+.travel-bar,
+html.phone-landscape .travel-bar {
+  right: auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+.lighthouse-go,
+.arcade-go-btn,
+.library-go-btn,
+.map-btn,
+html.phone-landscape .lighthouse-go,
+html.phone-landscape .arcade-go-btn,
+html.phone-landscape .library-go-btn,
+html.phone-landscape .map-btn {
+  width: auto;
+  min-width: 0;
+  height: 46px;
+  min-height: 46px;
+  padding: 0 16px 0 10px;
+  gap: 8px;
+  justify-content: flex-start;
+  border: 2.5px solid #5c4a3e;
+  border-radius: 999px;
+  background: rgba(255, 248, 238, 0.95);
+  box-shadow: 0 4px 0 rgba(92, 74, 62, 0.25), 0 6px 16px rgba(40, 30, 20, 0.16);
+}
+.top-emoji,
+.map-btn-icon,
+html.phone-landscape .map-btn-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.top-label {
+  font: 600 16px "Fredoka", system-ui, sans-serif;
+  color: #4a3a30;
+  white-space: nowrap;
+}
+.lighthouse-go:active,
+.arcade-go-btn:active,
+.library-go-btn:active,
+.map-btn:active { transform: translateY(2px); }
+html.phone-landscape .lighthouse-go,
+html.phone-landscape .arcade-go-btn,
+html.phone-landscape .library-go-btn,
+html.phone-landscape .map-btn {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 12px 0 8px;
+  gap: 6px;
+}
+html.phone-landscape .top-emoji,
+html.phone-landscape .map-btn-icon { font-size: 19px; }
+html.phone-landscape .top-label { font-size: 13px; }

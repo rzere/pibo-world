@@ -162,7 +162,7 @@ export class Lobby {
       else this.onGoWorld?.();
     });
 
-    const share = el("button", "world-btn", "🔗");
+    const share = el("button", "world-btn", "🔗 Share");
     share.type = "button";
     share.title = "Copy invite link";
     share.addEventListener("click", () => this._copyLink());
