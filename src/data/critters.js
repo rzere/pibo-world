@@ -7,15 +7,17 @@
  */
 const UNIT = 0.0076;
 
+// The files named "-left" face screen-right and "-right" face screen-left,
+// so each slot loads the drawing that actually faces that way.
 export const CRITTER_FRAME_NAMES = [
   "front-a",
-  "three-left",
-  "side-left",
-  "back-left",
-  "front-b",
   "three-right",
   "side-right",
   "back-right",
+  "front-b",
+  "three-left",
+  "side-left",
+  "back-left",
 ];
 
 function critter(id, pixelWidth, pixelHeight, x, z, roam, speed, idle) {
