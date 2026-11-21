@@ -2924,3 +2924,126 @@ html.phone-landscape .market-bubble { font-size: 14px; }
   .market-bubble.pop,
   .market-item.nope { animation: none; }
 }
+
+/* English chat with an island animal */
+.npc-chat {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(420px, 92vw);
+  pointer-events: auto;
+  animation: rise 0.24s ease;
+}
+.npc-card {
+  position: relative;
+  padding: 16px 16px 12px;
+  background: var(--card);
+  border: 3px solid #5c4a3e;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-align: left;
+  touch-action: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.npc-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #5c4a3e;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  font: 600 22px "Fredoka", system-ui, sans-serif;
+  line-height: 1;
+  cursor: pointer;
+}
+.npc-head { display: flex; align-items: center; gap: 10px; padding-right: 36px; }
+.npc-emoji { font-size: 36px; line-height: 1; }
+.npc-kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); }
+.npc-name { font-size: 22px; font-weight: 700; line-height: 1.1; }
+.npc-log {
+  height: 168px;
+  margin-top: 10px;
+  overflow-y: auto;
+  padding: 4px 2px;
+  font-size: 16px;
+  line-height: 1.4;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.npc-line { margin: 4px 0; overflow-wrap: anywhere; }
+.npc-line b { font-weight: 600; }
+.npc-line.npc b { color: #b4553a; }
+.npc-line.you b { color: #3d7a3a; }
+.npc-line.note {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #e8f6df;
+  color: #2f6a32;
+  font-size: 14px;
+  font-weight: 600;
+}
+.npc-line.pending { color: var(--ink-soft); letter-spacing: 0.2em; }
+.npc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 6px;
+}
+.npc-chip {
+  flex: none;
+  padding: 6px 12px;
+  font: 600 15px "Fredoka", system-ui, sans-serif;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid #eadccb;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.npc-chip:hover { border-color: var(--coral); }
+.npc-form { display: flex; gap: 6px; }
+.npc-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  font: 500 16px "Fredoka", system-ui, sans-serif;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid #d9c7b4;
+  border-radius: 999px;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: auto;
+}
+.npc-input:focus { border-color: var(--coral); }
+.npc-input:disabled { opacity: 0.7; }
+.npc-send {
+  flex: none;
+  padding: 10px 16px;
+  font: 600 16px "Fredoka", system-ui, sans-serif;
+  color: #fff;
+  background: var(--coral);
+  border: 2px solid #5c4a3e;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.npc-send:disabled { opacity: 0.6; cursor: default; }
+.npc-foot { margin-top: 8px; font-size: 12px; color: var(--ink-soft); text-align: center; }
+.npc-foot b { color: var(--coral); }
+html.talking-npc .chat-panel { display: none !important; }
+html.touch-ui .npc-chat,
+html.phone-landscape .npc-chat {
+  bottom: max(24%, calc(env(safe-area-inset-bottom) + 150px));
+}
+html.phone-landscape .npc-log { height: 96px; }
+@media (prefers-reduced-motion: reduce) {
+  .npc-chat { animation: none; }
+}

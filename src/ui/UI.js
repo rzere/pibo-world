@@ -8,6 +8,7 @@ import { ArcadeEditor } from "./ArcadeEditor.js";
 import { LibraryPanel } from "./LibraryPanel.js";
 import { ArtRoom } from "./ArtRoom.js";
 import { TrophyRoom } from "./TrophyRoom.js";
+import { NpcChat } from "./NpcChat.js";
 
 const DOOR_ICON = `<svg class="action-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 8h18a3 3 0 0 1 3 3v29H11V11a3 3 0 0 1 3-3z" fill="#fff6ee" stroke="#3a2a24" stroke-width="3.5" stroke-linejoin="round"/><circle cx="29" cy="26" r="2.2" fill="#3a2a24"/></svg>`;
 const CLOSE_ICON = `<svg class="action-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 16l16 16M32 16L16 32" fill="none" stroke="#3a2a24" stroke-width="4" stroke-linecap="round"/></svg>`;
@@ -104,6 +105,11 @@ export class UI {
         this.onTrophyLeave?.();
       },
     });
+    this.npc = new NpcChat(document.getElementById("ui"));
+    this.npc.onClose = () => {
+      this._syncActionBtn();
+      this.onNpcClose?.();
+    };
     this.lastIdea = null;
 
     this.input = null;
@@ -227,6 +233,10 @@ export class UI {
       this.closeIdeas();
       return;
     }
+    if (this.isNpcOpen) {
+      this.closeNpc();
+      return;
+    }
     if (this.isStudioOpen) this._onStudioLeave?.();
     else if (this.isPanelOpen) this.closePanel();
     else if (this.isModalOpen) this.closeFact();
@@ -236,7 +246,7 @@ export class UI {
   _syncActionBtn() {
     const btn = this.el.actionBtn;
     if (!btn) return;
-    if (this.isArtOpen || this.isTrophyOpen || this.isLibraryOpen || this.isArcadeOpen || this.isMapOpen || this.isIdeaOpen || this.isStudioOpen || this.isModalOpen) {
+    if (this.isArtOpen || this.isTrophyOpen || this.isLibraryOpen || this.isArcadeOpen || this.isMapOpen || this.isIdeaOpen || this.isStudioOpen || this.isNpcOpen || this.isModalOpen) {
       btn.innerHTML = CLOSE_ICON;
       btn.classList.add("close-mode");
       btn.classList.remove("ready");
@@ -276,7 +286,7 @@ export class UI {
     this.el.prompt.classList.toggle("hidden", phone);
     if (phone && this.el.actionBtn) {
       this.el.actionBtn.innerHTML = DOOR_ICON;
-      this.el.actionBtn.setAttribute("aria-label", "Enter");
+      this.el.actionBtn.setAttribute("aria-label", label || "Enter");
     }
     this.el.actionBtn.classList.add("ready");
   }
@@ -286,9 +296,28 @@ export class UI {
   }
 
   /* plant panel ---------------------------------------------------- */
+  get isNpcOpen() {
+    return !!this.npc?.isOpen;
+  }
   get isModalOpen() {
-    return !this.el.panel.classList.contains("hidden") ||
+    return this.isNpcOpen ||
+      !this.el.panel.classList.contains("hidden") ||
       !this.el.fact.classList.contains("hidden");
+  }
+
+  openNpc(friend) {
+    this.closeFact();
+    this.closePanel();
+    this.npc?.open(friend);
+    this.hidePrompt();
+    this._syncActionBtn();
+  }
+
+  closeNpc() {
+    if (!this.isNpcOpen) return;
+    this.npc.close();
+    this._syncActionBtn();
+    this.onNpcClose?.();
   }
   get isPanelOpen() {
     return !this.el.panel.classList.contains("hidden");
@@ -355,6 +384,7 @@ export class UI {
   }
 
   closeModals() {
+    this.closeNpc();
     this.closePanel();
     this.closeFact();
     this.closeMap();

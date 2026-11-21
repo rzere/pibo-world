@@ -26,8 +26,8 @@ const ENTER_RANGE = 2.15;
 /**
  * Isometric island. The camera angle stays fixed; it only slides to follow
  * Pibo. Props are images from the asset manifest. Studio, arcade, garden,
- * and the hidden friends keep their old jobs. Paria's eight little animals hop
- * around the grass. Pibo is the only pot on the island.
+ * and the hidden friends keep their old jobs. Paria's eight little animals
+ * stay near home. Walk up and talk with them in English. Pibo is the only pot.
  */
 export class Game {
   constructor(canvas, ui) {
@@ -153,6 +153,10 @@ export class Game {
     };
     this.ui.onTrophyLeave = () => this._leaveTrophy();
     this.ui.onTrophyDecor = (decor) => this.multiplayer?.setDecor(decor);
+    this.ui.onNpcClose = () => {
+      this._talking?.setTalking(false);
+      this._talking = null;
+    };
   }
 
   _initPlayer() {
@@ -391,6 +395,12 @@ export class Game {
       return;
     }
 
+    if (ui.isNpcOpen) {
+      ui.hidePrompt();
+      if (this.input.consume("Escape")) ui.closeNpc();
+      return;
+    }
+
     if (ui.isModalOpen) {
       ui.hidePrompt();
       if (ui.isPanelOpen) {
@@ -452,6 +462,13 @@ export class Game {
       return;
     }
 
+    const critter = this._nearestCritter(p, 1.75);
+    if (critter) {
+      ui.setPrompt(`Talk to ${critter.name}`);
+      if (this.input.consume("KeyE", "Enter")) this._openNpc(critter);
+      return;
+    }
+
     if (this.friendsVisible && Math.hypot(p.x - this.companion.x, p.z - this.companion.z) < 1.8) {
       ui.setPrompt("Talk");
       if (this.input.consume("KeyE", "Enter")) this._talkToCompanion();
@@ -476,6 +493,26 @@ export class Game {
 
   _near(p, spot, range) {
     return Math.hypot(p.x - spot.x, p.z - spot.z) < range;
+  }
+
+  _nearestCritter(p, range) {
+    let best = null;
+    let bestD = range;
+    for (const critter of this.critters) {
+      const dist = Math.hypot(p.x - critter.x, p.z - critter.z);
+      if (dist < bestD) {
+        best = critter;
+        bestD = dist;
+      }
+    }
+    return best;
+  }
+
+  _openNpc(critter) {
+    const p = this.pibo.worldPosition();
+    critter.setTalking(true, this._faceToward(critter, p));
+    this._talking = critter;
+    this.ui.openNpc(critter);
   }
 
   _faceToward(from, to) {

@@ -4,7 +4,8 @@ import { placeOnPlate } from "../world/iso.js";
 import { createChatterBubble, nearSomeone, setChatterBubble } from "./chatterBubble.js";
 
 /**
- * One of Paria's little animals. It hops a short wander on walkable grass.
+ * One of Paria's little animals. It stays near home and only ambles a step
+ * now and then. When you walk up, it turns to face you and waits to talk.
  * While it moves it uses the walk drawing that matches that direction.
  * She drew both sides, so nothing is mirrored. A soft empty bubble appears
  * when it chatters or stands near a friend. The bubble has no words.
@@ -12,6 +13,10 @@ import { createChatterBubble, nearSomeone, setChatterBubble } from "./chatterBub
 export class Critter {
   constructor({ textures, basis, def }) {
     this.id = def.id;
+    this.name = def.name || def.id;
+    this.emoji = def.emoji || "🐾";
+    this.hello = def.hello || "Hello! How are you?";
+    this.lines = def.lines || [this.hello];
     this.x = def.x;
     this.z = def.z;
     this.homeX = def.x;
@@ -19,6 +24,8 @@ export class Critter {
     this.roam = def.roam;
     this.speed = def.speed;
     this.radius = 0.34;
+    this.talking = false;
+    this._holding = false;
     this.width = def.width;
     this.height = def.height;
 
@@ -26,7 +33,7 @@ export class Critter {
     this.faceZ = 0;
     this.moving = false;
     this.mode = "idle";
-    this.idleLeft = def.idle ?? 0.4 + Math.random() * 0.8;
+    this.idleLeft = (def.idle ?? 6) + Math.random() * 4;
     this.target = null;
     this.stuck = 0;
     this.walkPhase = Math.random() * Math.PI * 2;
@@ -74,9 +81,31 @@ export class Critter {
     this._apply();
   }
 
+  /** Face the player and stay put for a conversation. */
+  setTalking(on, face) {
+    this.talking = !!on;
+    this.moving = false;
+    this.target = null;
+    this.mode = "idle";
+    if (face) {
+      this.faceX = face.x;
+      this.faceZ = face.z;
+    }
+  }
+
   update(dt, collision, pibo, others = []) {
-    const yielded = this._yield(dt, collision, pibo);
-    if (!yielded) this._stroll(dt, collision);
+    if (this.talking || this._closeTo(pibo)) {
+      this._hold(dt, collision, pibo);
+      return;
+    }
+    if (this._holding) {
+      this._holding = false;
+      this.mode = "idle";
+      this.idleLeft = 6 + Math.random() * 6;
+      this.moving = false;
+      this.target = null;
+    }
+    this._stroll(dt, collision);
     this._separate(others, collision);
     const chatting = this.mode === "chatter" || nearSomeone(this, others, 1.2);
     setChatterBubble(this.bubble, chatting, dt, this.idleT, this.height);
@@ -84,33 +113,34 @@ export class Critter {
     this._apply();
   }
 
-  _yield(dt, collision, pibo) {
+  _closeTo(pibo) {
     if (!pibo) return false;
-    const dx = this.x - pibo.x;
-    const dz = this.z - pibo.z;
-    const dist = Math.hypot(dx, dz);
-    const need = (pibo.radius || 0.45) + this.radius + 0.12;
-    if (dist >= need) {
-      if (this.mode === "yield") {
-        this.mode = "idle";
-        this.idleLeft = 0.25 + Math.random() * 0.4;
+    return Math.hypot(this.x - pibo.x, this.z - pibo.z) < 2.15;
+  }
+
+  _hold(dt, collision, pibo) {
+    this._holding = true;
+    this.target = null;
+    this.mode = "idle";
+    this.moving = false;
+    if (pibo) {
+      const dx = pibo.x - this.x;
+      const dz = pibo.z - this.z;
+      const dist = Math.hypot(dx, dz) || 1;
+      this.faceX = dx / dist;
+      this.faceZ = dz / dist;
+      const raw = Math.hypot(dx, dz);
+      const need = (pibo.radius || 0.45) + this.radius * 0.45;
+      if (raw < need) {
+        const awayX = raw < 0.02 ? 1 : -dx / dist;
+        const awayZ = raw < 0.02 ? 0 : -dz / dist;
+        this._tryMove(awayX * Math.min(0.035, need - raw), awayZ * Math.min(0.035, need - raw), collision, this.roam + 0.12);
         this.moving = false;
       }
-      return false;
     }
-    const awayX = dist < 0.02 ? -(pibo.faceZ || 0) : dx / (dist || 1);
-    const awayZ = dist < 0.02 ? (pibo.faceX || 1) : dz / (dist || 1);
-    const push = Math.min(this.speed * 1.4 * dt, Math.max(0.01, need - dist + 0.02));
-    if (this._tryMove(awayX * push, awayZ * push, collision, this.roam + 0.4)) {
-      this.faceX = awayX;
-      this.faceZ = awayZ;
-      this.moving = true;
-      this.mode = "yield";
-      this.target = null;
-      return true;
-    }
-    this.moving = false;
-    return true;
+    setChatterBubble(this.bubble, false, dt, this.idleT, this.height);
+    this._animate(dt);
+    this._apply();
   }
 
   _stroll(dt, collision) {
@@ -119,7 +149,7 @@ export class Critter {
       this.moving = false;
       if (this.chatterLeft <= 0) {
         this.mode = "idle";
-        this.idleLeft = 0.25 + Math.random() * 0.45;
+        this.idleLeft = 5 + Math.random() * 6;
       }
       return;
     }
@@ -128,10 +158,13 @@ export class Critter {
       this.moving = false;
       this.idleLeft -= dt;
       if (this.idleLeft > 0) return;
-      if (Math.random() < 0.42) {
-        this.mode = "chatter";
-        this.chatterLeft = 0.38 + Math.random() * 0.25;
-        this.walkPhase = 0;
+      if (Math.random() > 0.22) {
+        this.idleLeft = 5 + Math.random() * 7;
+        if (Math.random() < 0.4) {
+          this.mode = "chatter";
+          this.chatterLeft = 0.45 + Math.random() * 0.35;
+          this.walkPhase = 0;
+        }
         return;
       }
       const next = this._pickTarget(collision);
@@ -140,14 +173,14 @@ export class Critter {
         this.mode = "walk";
         this.stuck = 0;
       } else {
-        this.idleLeft = 0.4 + Math.random() * 0.5;
+        this.idleLeft = 4 + Math.random() * 4;
       }
       return;
     }
 
     if (!this.target) {
       this.mode = "idle";
-      this.idleLeft = 0.4;
+      this.idleLeft = 4;
       this.moving = false;
       return;
     }
@@ -157,7 +190,7 @@ export class Critter {
     const dist = Math.hypot(dx, dz);
     if (dist < 0.06) {
       this.mode = "idle";
-      this.idleLeft = 0.45 + Math.random() * 0.9;
+      this.idleLeft = 8 + Math.random() * 8;
       this.moving = false;
       this.target = null;
       return;
@@ -178,7 +211,7 @@ export class Critter {
     }
     if (this.stuck > 0.35) {
       this.mode = "idle";
-      this.idleLeft = 0.3 + Math.random() * 0.5;
+      this.idleLeft = 5 + Math.random() * 5;
       this.moving = false;
       this.target = null;
       this.stuck = 0;

@@ -13,7 +13,7 @@ const game = new Game(canvas, ui);
 canvas.addEventListener("pointerdown", () => canvas.focus());
 
 // Play fills the screen. Block scroll, bounce, pinch, and double-tap zoom.
-const scrollable = "input, textarea, select, .map-card, .collection, .arcade-log, .panel, .fact, .lobby-card, .world-people, .chat-log, .chat-quick";
+const scrollable = "input, textarea, select, .map-card, .collection, .arcade-log, .panel, .fact, .lobby-card, .world-people, .chat-log, .chat-quick, .npc-card, .npc-log, .npc-chips";
 document.addEventListener("touchmove", (e) => {
   if (e.touches.length > 1 || !e.target.closest(scrollable)) e.preventDefault();
 }, { passive: false });
