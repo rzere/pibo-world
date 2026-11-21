@@ -17,6 +17,7 @@ import { getCharacter } from "../data/characters.js";
 import { LibraryRoom } from "../systems/LibraryRoom.js";
 import { Pibo } from "../entities/Pibo.js";
 import { Critter } from "../entities/Critter.js";
+import { SpeechBubbles } from "../ui/SpeechBubbles.js";
 import { CRITTERS } from "../data/critters.js";
 import { getPlant } from "../data/plants.js";
 import { PIBO_SCALE, SHOW_VILLAGE_FRIENDS } from "../config.js";
@@ -217,6 +218,8 @@ export class Game {
   }
 
   start() {
+    this.animalBubbles = new SpeechBubbles({ camera: this.camera, canvas: this.canvas });
+    this.ui.npc.onSpeak = (event) => this._onAnimalSpeak(event);
     this.renderer.setAnimationLoop(() => this._frame());
     this._maybeBootStudio();
   }
@@ -265,6 +268,7 @@ export class Game {
   _frame() {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.multiplayer?.update(dt);
+    this.animalBubbles?.update(dt);
 
     if (this.arcadeRoom.active) {
       this.arcadeRoom.update(dt);
@@ -329,6 +333,7 @@ export class Game {
       for (const critter of this.critters) {
         critter.update(dt, this.collision, this.pibo, this.critters);
       }
+      this._syncAnimalChatter();
     }
 
     if (!this.started && this.pibo.moving) {
@@ -506,6 +511,33 @@ export class Game {
       }
     }
     return best;
+  }
+
+  _syncAnimalChatter() {
+    const bubbles = this.animalBubbles;
+    if (!bubbles) return;
+    const talking = this._talking?.id;
+    for (const critter of this.critters) {
+      if (!critter.chatting || critter.id === talking) continue;
+      bubbles.think(critter.id, () => bubbles.meshTop(critter.mesh, 0.5));
+    }
+  }
+
+  _onAnimalSpeak(event) {
+    const bubbles = this.animalBubbles;
+    const id = event?.id;
+    if (!bubbles || !id) return;
+    const critter = this.critters?.find((c) => c.id === id);
+    if (!critter) return;
+    const anchor = () => bubbles.meshTop(critter.mesh, 0.5);
+    if (event.phase === "typing") {
+      bubbles.remove(id);
+      bubbles.showDots(`talk:${id}`, anchor);
+    } else if (event.phase === "text") {
+      bubbles.showText(`talk:${id}`, event.text, anchor, { sticky: true });
+    } else {
+      bubbles.dismiss(`talk:${id}`);
+    }
   }
 
   _openNpc(critter) {

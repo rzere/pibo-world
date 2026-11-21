@@ -1,13 +1,13 @@
 import * as THREE from "three";
+import { morphBubble, typingDots } from "./typingDots.js";
 
 const LIFE = 6;
 const FADE = 0.5;
 
 /**
  * Chat bubbles over characters' heads. They are HTML so the words stay sharp.
- * Each frame the speaker's anchor gives a screen point (the top of a sprite
- * on the island, or of a walker in a painted room), or null to hide.
  * One bubble per speaker: a new message replaces the old one.
+ * Animals can show three dots first (thinking, or typing before a line).
  */
 export class SpeechBubbles {
   constructor({ camera, canvas, root = document.getElementById("ui") }) {
@@ -21,18 +21,95 @@ export class SpeechBubbles {
   }
 
   say(key, text, anchor) {
-    let bubble = this.bubbles.get(key);
-    if (!bubble) {
-      const node = document.createElement("div");
-      node.className = "speech";
-      this.layer.append(node);
-      bubble = { node };
-      this.bubbles.set(key, bubble);
-    }
-    bubble.node.textContent = text;
-    bubble.node.classList.toggle("emoji", isOnlyEmoji(text));
+    const bubble = this._ensure(key);
+    bubble.phase = "text";
+    bubble.sticky = false;
     bubble.t = LIFE;
     bubble.anchor = anchor;
+    bubble.node.classList.remove("is-typing");
+    bubble.node.classList.toggle("emoji", isOnlyEmoji(text));
+    bubble.node.removeAttribute("aria-hidden");
+    bubble.node.style.width = "";
+    bubble.node.style.height = "";
+    bubble.text.textContent = text;
+    this._place(bubble);
+  }
+
+  /** Dots only, while an animal chatters with nothing to say yet. Refresh each frame. */
+  think(key, anchor) {
+    const bubble = this._ensure(key);
+    bubble.anchor = anchor;
+    bubble.hold = 0.32;
+    bubble.sticky = false;
+    if (bubble.phase !== "thinking") {
+      bubble.phase = "thinking";
+      bubble.node.classList.add("is-typing");
+      bubble.node.classList.remove("emoji");
+      bubble.text.textContent = "";
+      bubble.node.setAttribute("aria-hidden", "true");
+      bubble.node.style.width = "";
+      bubble.node.style.height = "";
+      bubble.node.style.opacity = "1";
+    }
+    this._place(bubble);
+  }
+
+  /** Dots that stay until showText or dismiss. A fresh bubble pops in at dot size. */
+  showDots(key, anchor) {
+    let bubble = this.bubbles.get(key);
+    if (bubble && bubble.phase !== "dots") {
+      bubble.node.remove();
+      this.bubbles.delete(key);
+      bubble = null;
+    }
+    bubble = bubble || this._ensure(key);
+    bubble.anchor = anchor;
+    bubble.sticky = true;
+    bubble.phase = "dots";
+    bubble.node.style.opacity = "1";
+    if (!bubble.node.classList.contains("is-typing")) {
+      bubble.node.classList.add("is-typing");
+      bubble.node.classList.remove("emoji");
+      bubble.text.textContent = "";
+      bubble.node.setAttribute("aria-hidden", "true");
+      bubble.node.style.width = "";
+      bubble.node.style.height = "";
+    }
+    this._place(bubble);
+  }
+
+  /** Dots become this line. Sticky lines stay up until dismiss. */
+  showText(key, text, anchor, { sticky = false } = {}) {
+    const bubble = this._ensure(key);
+    if (anchor) bubble.anchor = anchor;
+    bubble.sticky = !!sticky;
+    bubble.phase = "text";
+    bubble.t = LIFE;
+    bubble.node.classList.toggle("emoji", isOnlyEmoji(text));
+    bubble.node.removeAttribute("aria-hidden");
+    if (bubble.node.classList.contains("is-typing")) morphBubble(bubble.node, bubble.text, text);
+    else {
+      bubble.node.classList.remove("is-typing");
+      bubble.node.style.width = "";
+      bubble.node.style.height = "";
+      bubble.text.textContent = text;
+    }
+    this._place(bubble);
+  }
+
+  dismiss(key) {
+    const bubble = this.bubbles.get(key);
+    if (!bubble) return;
+    bubble.sticky = false;
+    bubble.phase = "bye";
+    bubble.t = Math.min(bubble.t || FADE, FADE);
+  }
+
+  remove(key) {
+    const bubble = this.bubbles.get(key);
+    if (!bubble) return;
+    bubble.node.remove();
+    this.bubbles.delete(key);
   }
 
   clear() {
@@ -43,6 +120,7 @@ export class SpeechBubbles {
   /** Screen point at the top of an island sprite, or null if it is hidden. */
   meshTop(mesh, top = 0.5) {
     if (!mesh || !shown(mesh)) return null;
+    this.camera.updateMatrixWorld();
     const v = this._v.set(0, (mesh.geometry.parameters?.height || 1) * top, 0);
     mesh.localToWorld(v);
     v.project(this.camera);
@@ -52,22 +130,59 @@ export class SpeechBubbles {
 
   update(dt) {
     for (const [key, bubble] of this.bubbles) {
-      bubble.t -= dt;
-      if (bubble.t <= 0) {
-        bubble.node.remove();
-        this.bubbles.delete(key);
-        continue;
+      if (bubble.phase === "thinking") {
+        bubble.hold -= dt;
+        if (bubble.hold <= 0) {
+          bubble.phase = "bye";
+          bubble.t = FADE;
+        }
       }
-      const p = bubble.anchor?.();
-      if (!p) {
-        bubble.node.style.display = "none";
-        continue;
+      const fading = bubble.phase === "bye" || (bubble.phase === "text" && !bubble.sticky);
+      if (fading) {
+        bubble.t -= dt;
+        if (bubble.t <= 0) {
+          bubble.node.remove();
+          this.bubbles.delete(key);
+          continue;
+        }
       }
-      bubble.node.style.display = "";
-      bubble.node.style.left = `${p.x}px`;
-      bubble.node.style.top = `${p.y}px`;
-      bubble.node.style.opacity = String(Math.min(1, bubble.t / FADE));
+      this._place(bubble);
+      const alpha = fading ? Math.min(1, bubble.t / FADE) : 1;
+      bubble.node.style.opacity = String(alpha);
     }
+  }
+
+  _ensure(key) {
+    let bubble = this.bubbles.get(key);
+    if (bubble) return bubble;
+    const node = document.createElement("div");
+    node.className = "speech";
+    const text = document.createElement("span");
+    text.className = "speech-text";
+    node.append(typingDots(), text);
+    this.layer.append(node);
+    bubble = {
+      node,
+      text,
+      phase: "text",
+      sticky: false,
+      t: LIFE,
+      hold: 0,
+      anchor: null,
+    };
+    this.bubbles.set(key, bubble);
+    return bubble;
+  }
+
+  _place(bubble) {
+    const p = bubble.anchor?.();
+    if (!p) {
+      bubble.node.style.display = "none";
+      return;
+    }
+    bubble.node.style.display = "";
+    bubble.node.style.left = `${p.x}px`;
+    bubble.node.style.top = `${p.y}px`;
   }
 }
 
