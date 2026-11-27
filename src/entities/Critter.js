@@ -7,8 +7,9 @@ import { createChatterBubble, nearSomeone, setChatterBubble } from "./chatterBub
  * One of Paria's little animals. It stays near home and only ambles a step
  * now and then. When you walk up, it turns to face you and waits to talk.
  * While it moves it uses the walk drawing that matches that direction.
- * She drew both sides, so nothing is mirrored. A soft empty bubble appears
- * when it chatters or stands near a friend. The bubble has no words.
+ * She drew both sides, so nothing is mirrored. A speech bubble with
+ * thinking dots appears when it chatters or stands near a friend.
+ * The painted bubble stays hidden; the words, when there are any, come later.
  */
 export class Critter {
   constructor({ textures, basis, def }) {
@@ -39,6 +40,7 @@ export class Critter {
     this.walkPhase = Math.random() * Math.PI * 2;
     this.idleT = Math.random() * 6;
     this.chatterLeft = 0;
+    this.chatting = false;
     this.frame = 0;
 
     this.frames = (def.frames || [def.src]).map((src) => textures.get(src) || null);
@@ -107,8 +109,8 @@ export class Critter {
     }
     this._stroll(dt, collision);
     this._separate(others, collision);
-    const chatting = this.mode === "chatter" || nearSomeone(this, others, 1.2);
-    setChatterBubble(this.bubble, chatting, dt, this.idleT, this.height);
+    this.chatting = this.mode === "chatter" || nearSomeone(this, others, 1.2);
+    setChatterBubble(this.bubble, false, dt, this.idleT, this.height);
     this._animate(dt);
     this._apply();
   }
@@ -138,6 +140,7 @@ export class Critter {
         this.moving = false;
       }
     }
+    this.chatting = false;
     setChatterBubble(this.bubble, false, dt, this.idleT, this.height);
     this._animate(dt);
     this._apply();
@@ -162,7 +165,7 @@ export class Critter {
         this.idleLeft = 5 + Math.random() * 7;
         if (Math.random() < 0.4) {
           this.mode = "chatter";
-          this.chatterLeft = 0.45 + Math.random() * 0.35;
+          this.chatterLeft = 1.15 + Math.random() * 0.75;
           this.walkPhase = 0;
         }
         return;

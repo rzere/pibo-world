@@ -76,13 +76,13 @@ No other environment variables are required. Do not put API keys in the repo.
 
 ## Play
 
-- **WASD** / **arrow keys** — walk the island. Up the keyboard moves up the picture, and Pibo turns to face the way it is going. The camera stays fixed on the painting.
+- **WASD** / **arrow keys** — walk the island. Up the keyboard moves up the picture, and Pibo turns to face the way it is going. The camera follows Pibo and stays inside the painting.
 - **E** / **Enter** — step inside the lighthouse or the arcade
 - **1 / 2 / 3** — choose a plant
 - **Esc** — step back from a panel
 - **Map** (top-right) — your island, a “You are here” dot, and other islands that stay locked until a points system exists. Locks read “Earn points to unlock”. Tap the lighthouse, then **Go to the lighthouse**, to use the same trip as the top-left button. Tap **Arcade**, then **Go to Arcade**. Close with **×**, a click outside, or **Esc**.
 - The blue friend and little white Pino are hidden for now. Turn them back on with `SHOW_VILLAGE_FRIENDS` in `src/config.js`. The garden beds and the collection button are hidden too, so the island matches the painting.
-- Eight little animals (cat, dog, bunny, panda, frog, penguin, unicorn, fox) hop around the grass. Each one uses her walk drawing for the way it is facing. They are smaller than Pibo. A soft empty bubble appears when they chatter. There are no words in it. Pibo is the only yellow pot.
+- Eight little animals (cat, dog, bunny, panda, frog, penguin, unicorn, fox) hop around the grass. Each one uses her walk drawing for the way it is facing. They are smaller than Pibo. A speech bubble with three thinking dots appears when they chatter. Walk up and talk, and those dots turn into their English line. Pibo is the only yellow pot.
 - **Phone / tablet** — a little joystick (bottom-left) steers Pibo; tap **E** (bottom-right) to interact. On-screen prompts and plant cards are tappable too.
 - The cottage, teal house, shed, trees, and rocks are solid — Pibo slides around them.
 - **Lighthouse studio** — fly to the islet, or tap the lighthouse icon (top left), then press **E**.

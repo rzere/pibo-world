@@ -1,6 +1,7 @@
 import { cleanChat } from "./Chat.js";
 import { practiceLines } from "../class/lessonPack.js";
 import { reportEnglish } from "../class/report.js";
+import { morphBubble, typingDelayMs, typingDots, wait } from "./typingDots.js";
 
 const CHIPS = ["Hello!", "I am happy.", "What do you like?", "Goodbye!"];
 
@@ -12,15 +13,19 @@ function el(tag, cls, text) {
 }
 
 /**
- * English practice with one island animal. The first line is instant.
- * Later lines come from /api/npc, with a small backup if that is quiet.
+ * English practice with one island animal. Each of their lines starts as
+ * three dots, then becomes the words. Later lines come from /api/npc,
+ * with a small backup if that is quiet.
  */
 export class NpcChat {
   constructor(root = document.getElementById("ui")) {
     this.onClose = null;
+    this.onSpeak = null;
     this.friend = null;
     this.messages = [];
     this.busy = false;
+    this._typing = false;
+    this._liveBubble = null;
     this._build(root);
   }
 
@@ -30,30 +35,33 @@ export class NpcChat {
 
   open(friend) {
     this._token = (this._token || 0) + 1;
+    const token = this._token;
     this.friend = friend;
-    this.messages = [{ who: "npc", text: friend.hello }];
-    this.busy = false;
+    this.messages = [];
+    this._typing = true;
     this.emoji.textContent = friend.emoji || "🐾";
     this.name.textContent = friend.name || "Friend";
     this.input.value = "";
-    this.input.disabled = false;
-    this.sendBtn.disabled = false;
     this.wrap.classList.remove("hidden");
     document.documentElement.classList.add("talking-npc");
+    this._setBusy(true);
     this._render();
-    const touch = document.documentElement.classList.contains("touch-ui")
-      || document.documentElement.classList.contains("phone-landscape");
-    if (!touch) this.input.focus();
+    this._emit("typing");
+    const hello = friend.hello;
+    this._after(typingDelayMs(hello), token, () => this._finishNpc(hello));
   }
 
   close() {
     if (!this.isOpen) return;
+    this._emit("clear");
     this._token = (this._token || 0) + 1;
+    this._typing = false;
+    this._liveBubble = null;
     this.wrap.classList.add("hidden");
     document.documentElement.classList.remove("talking-npc");
     this.friend = null;
     this.messages = [];
-    this.busy = false;
+    this._setBusy(false);
     this.input.blur();
   }
 
@@ -148,9 +156,14 @@ export class NpcChat {
     if (!text) return;
     this.input.value = "";
     if (text.includes("★")) {
+      const token = this._token;
+      const line = "Let's use kind words. What do you like?";
       this.messages.push({ who: "you", text: "…" });
-      this.messages.push({ who: "npc", text: "Let's use kind words. What do you like?" });
+      this._typing = true;
+      this._setBusy(true);
       this._render();
+      this._emit("typing");
+      this._after(typingDelayMs(line), token, () => this._finishNpc(line));
       return;
     }
     this.messages.push({ who: "you", text });
@@ -162,8 +175,11 @@ export class NpcChat {
   async _ask() {
     const friend = this.friend;
     const token = this._token;
+    const started = performance.now();
     this._setBusy(true);
+    this._typing = true;
     this._render();
+    this._emit("typing");
     const history = this.messages
       .filter((m) => m.who === "you" || m.who === "npc")
       .slice(-8)
@@ -183,12 +199,12 @@ export class NpcChat {
       say = this._backup();
     }
     if (token !== this._token || !this.isOpen) return;
-    if (note) this.messages.push({ who: "note", text: note });
-    this.messages.push({ who: "npc", text: say });
-    this._setBusy(false);
-    this._render();
-    const touch = document.documentElement.classList.contains("touch-ui");
-    if (!touch) this.input.focus();
+    const remain = typingDelayMs(say) - (performance.now() - started);
+    if (remain > 0) {
+      await wait(remain);
+      if (token !== this._token || !this.isOpen) return;
+    }
+    this._finishNpc(say, note);
   }
 
   _backup() {
@@ -208,19 +224,67 @@ export class NpcChat {
     this.wrap.classList.toggle("busy", on);
   }
 
+  _finishNpc(text, note = "") {
+    if (note) this.messages.push({ who: "note", text: note });
+    this.messages.push({ who: "npc", text });
+    this._typing = false;
+    const bubble = this._liveBubble;
+    const row = bubble?.closest(".npc-line");
+    if (note && row) row.before(el("div", "npc-line note", note));
+    if (bubble) morphBubble(bubble, bubble.querySelector(".say-text"), text);
+    else this._render();
+    this._liveBubble = null;
+    this._setBusy(false);
+    this._emit("text", text);
+    this.log.scrollTop = this.log.scrollHeight;
+    const touch = document.documentElement.classList.contains("touch-ui")
+      || document.documentElement.classList.contains("phone-landscape");
+    if (!touch) this.input.focus();
+  }
+
+  _emit(phase, text) {
+    this.onSpeak?.({ phase, text, id: this.friend?.id });
+  }
+
+  _after(ms, token, fn) {
+    wait(ms).then(() => {
+      if (token !== this._token || !this.isOpen) return;
+      fn();
+    });
+  }
+
   _render() {
     this.log.replaceChildren();
+    this._liveBubble = null;
+    const name = this.friend?.name || "Friend";
     for (const message of this.messages) {
-      const row = el("div", `npc-line ${message.who}`);
       if (message.who === "note") {
-        row.textContent = message.text;
-      } else {
-        const who = message.who === "you" ? "You" : this.friend?.name || "Friend";
-        row.append(el("b", null, who), document.createTextNode(` ${message.text}`));
+        this.log.append(el("div", "npc-line note", message.text));
+        continue;
       }
+      if (message.who === "npc") {
+        const row = el("div", "npc-line npc");
+        row.append(el("b", null, name));
+        const bubble = el("div", "say-bubble");
+        bubble.append(el("span", "say-text", message.text));
+        row.append(bubble);
+        this.log.append(row);
+        continue;
+      }
+      const row = el("div", "npc-line you");
+      row.append(el("b", null, "You"), document.createTextNode(` ${message.text}`));
       this.log.append(row);
     }
-    if (this.busy) this.log.append(el("div", "npc-line npc pending", "…"));
+    if (this._typing) {
+      const row = el("div", "npc-line npc");
+      row.append(el("b", null, name));
+      const bubble = el("div", "say-bubble is-typing");
+      const text = el("span", "say-text");
+      bubble.append(typingDots(), text);
+      row.append(bubble);
+      this.log.append(row);
+      this._liveBubble = bubble;
+    }
     this.log.scrollTop = this.log.scrollHeight;
   }
 }

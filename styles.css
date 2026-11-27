@@ -51,21 +51,21 @@ html, body {
 
 #scene {
   position: fixed;
-  inset: 0;
+  top: var(--app-top, 0px);
+  left: var(--app-left, 0px);
+  width: var(--app-width, 100%);
+  height: var(--app-height, 100dvh);
   z-index: 1;
   display: block;
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
   touch-action: none;
 }
 
 #ui {
   position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
+  top: var(--app-top, 0px);
+  left: var(--app-left, 0px);
+  width: var(--app-width, 100%);
+  height: var(--app-height, 100dvh);
   z-index: 2;
   pointer-events: none;
   touch-action: none;
@@ -2527,6 +2527,99 @@ html.phone-landscape .qr-btn { bottom: auto; top: max(58px, calc(env(safe-area-i
   from { transform: translate(-50%, calc(-100% - 8px)) scale(0.7); }
   to { transform: translate(-50%, calc(-100% - 14px)) scale(1); }
 }
+.speech.is-typing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  min-height: 32px;
+}
+.typing-dots {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  height: 16px;
+  min-width: 34px;
+}
+.typing-dots i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5c4a3e;
+  opacity: 0.35;
+  animation: typing-dot 1.05s ease-in-out infinite;
+}
+.typing-dots i:nth-child(2) { animation-delay: 0.16s; }
+.typing-dots i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes typing-dot {
+  0%, 70%, 100% { transform: translateY(0); opacity: 0.35; }
+  35% { transform: translateY(-5px); opacity: 1; }
+}
+.typing-dots { transition: opacity 0.18s ease; }
+.speech-text.is-revealing,
+.say-text.is-revealing { animation: speech-text-in 0.22s ease; }
+@keyframes speech-text-in { from { opacity: 0; } to { opacity: 1; } }
+.speech:not(.is-typing) .typing-dots,
+.say-bubble:not(.is-typing) .typing-dots {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -55%);
+  opacity: 0;
+  pointer-events: none;
+}
+.speech.is-typing .speech-text,
+.say-bubble.is-typing .say-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.say-bubble {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin: 2px 0 12px;
+  padding: 7px 12px;
+  font: 600 15px/1.25 "Fredoka", system-ui, sans-serif;
+  color: var(--ink);
+  text-align: left;
+  background: #fff;
+  border: 2px solid #5c4a3e;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(60, 40, 30, 0.18);
+  overflow-wrap: anywhere;
+}
+.say-bubble.is-typing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  min-height: 32px;
+}
+.say-bubble::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  bottom: -8px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-right: 2px solid #5c4a3e;
+  border-bottom: 2px solid #5c4a3e;
+  transform: rotate(45deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-dots i { animation: none; opacity: 0.75; }
+  .speech-text.is-revealing,
+  .say-text.is-revealing { animation: none; }
+}
 
 /* ---------- Pibo Market ---------- */
 .in-market .chat,
@@ -2970,13 +3063,20 @@ html.phone-landscape .market-bubble { font-size: 14px; }
   height: 168px;
   margin-top: 10px;
   overflow-y: auto;
-  padding: 4px 2px;
+  padding: 4px 2px 14px;
   font-size: 16px;
   line-height: 1.4;
   overscroll-behavior: contain;
   touch-action: pan-y;
 }
 .npc-line { margin: 4px 0; overflow-wrap: anywhere; }
+.npc-line.npc {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  overflow: visible;
+}
 .npc-line b { font-weight: 600; }
 .npc-line.npc b { color: #b4553a; }
 .npc-line.you b { color: #3d7a3a; }
@@ -3036,6 +3136,7 @@ html.phone-landscape .market-bubble { font-size: 14px; }
   cursor: pointer;
 }
 .npc-send:disabled { opacity: 0.6; cursor: default; }
+.npc-chat.busy .npc-chip { opacity: 0.55; pointer-events: none; }
 .npc-foot { margin-top: 8px; font-size: 12px; color: var(--ink-soft); text-align: center; }
 .npc-foot b { color: var(--coral); }
 html.talking-npc .chat-panel { display: none !important; }
