@@ -1,6 +1,8 @@
 import { PLANTS } from "../data/plants.js";
 import { STUDIO_PROMPTS } from "../data/studioPrompts.js";
 import { lockedLabel } from "../data/planets.js";
+import { studioLines } from "../class/lessonPack.js";
+import { reportCreation, reportEnglish } from "../class/report.js";
 import { Joystick } from "./Joystick.js";
 import { IdeaPanel } from "./IdeaPanel.js";
 import { WorldMap } from "./WorldMap.js";
@@ -111,6 +113,7 @@ export class UI {
       this.onNpcClose?.();
     };
     this.lastIdea = null;
+    this._classLesson = null;
 
     this.input = null;
     this.joystick = null;
@@ -523,11 +526,31 @@ export class UI {
     });
   }
 
+  /** Swap the lighthouse, library, arcade, and animal chat onto this week's unit. */
+  setClassLesson(lesson) {
+    this._classLesson = null;
+    if (!lesson) {
+      this._renderStudioChips();
+      return;
+    }
+    try {
+      this.ideas?.setLesson(lesson);
+      this.library?.setLesson(lesson);
+      this.arcade?.setLesson(lesson);
+      this.npc?.setLesson(lesson);
+      this._classLesson = lesson;
+    } catch {
+      this._classLesson = null;
+    }
+    this._renderStudioChips();
+  }
+
   _renderStudioChips() {
     const wrap = this.el.studioChips;
     if (!wrap) return;
     wrap.innerHTML = "";
-    for (const item of STUDIO_PROMPTS) {
+    const prompts = studioLines(this._classLesson) || STUDIO_PROMPTS;
+    for (const item of prompts) {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "studio-chip";
@@ -562,6 +585,12 @@ export class UI {
     if (this.el.studioPrompt) {
       this.el.studioPrompt.value = idea.prompt;
     }
+    reportCreation({
+      kind: "idea",
+      title: idea.title || "",
+      text: `${idea.prompt || ""} ${idea.sentence || ""}`.trim(),
+      words: idea.slots?.object?.label ? [idea.slots.object.label] : [],
+    });
     this.setStudioStatus(`Using your idea · ${idea.sentence}`);
     this.closeIdeas();
     window.dispatchEvent(new CustomEvent("pibo-idea", { detail: idea }));
@@ -600,6 +629,8 @@ export class UI {
       this.el.studioPrompt.focus();
       return;
     }
+    reportEnglish(prompt, "studio");
+    reportCreation({ kind: "show", title: "Lighthouse", text: prompt });
     this._onStudioGenerate?.(prompt);
   }
 

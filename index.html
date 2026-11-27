@@ -13,6 +13,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./gate.css" />
+  <script>
+    if (/[?&](as=teacher|code=)/.test(location.search)) document.documentElement.classList.add("gate-jump");
+  </script>
   <script type="importmap">
     {
       "imports": {
@@ -24,6 +28,20 @@
 </head>
 <body>
   <div id="sky"></div>
+  <div id="gate">
+    <div class="gate-sky">
+      <div class="gate-card" id="gate-card">
+        <img class="gate-pot" src="assets/pibo/pibo-thumb.png" alt="" />
+        <p class="gate-kicker">Pibo World</p>
+        <h1>Welcome to the island</h1>
+        <p class="gate-copy">A small world for practicing English. Teachers and students each have their own door.</p>
+        <div class="gate-choices">
+          <button type="button" id="gate-teacher" class="gate-choice">I am a teacher</button>
+          <button type="button" id="gate-student" class="gate-choice gate-choice-student">I am a student</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <canvas id="scene" tabindex="0" aria-label="Pibo island"></canvas>
 
   <!-- Minimal UI overlay. The island itself is the interface. -->

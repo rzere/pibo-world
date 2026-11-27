@@ -109,7 +109,28 @@ function fitSentences(lines, min, max) {
  * Offline story. Easy is 5 or 6 very short sentences. Medium is 7 or 8,
  * still A1–A2, with and / but / then. Every chosen word appears once.
  */
-export function templateStory({ words, level = "easy", theme = "" } = {}) {
+function teacherFramedStory({ words, level = "easy", theme = "", lesson }) {
+  const place = theme || "the island";
+  const sides = String(lesson?.grammar?.frame || "I like")
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const positive = sides[0] || "I like";
+  const negative = sides.find((side) => /n't| not /i.test(side)) || "";
+  const list = normalizeWords(words);
+  const easy = level !== "medium";
+  const lines = [`Pibo is at ${place}.`];
+  list.forEach((word, index) => {
+    const useNeg = negative && index >= Math.ceil(list.length / 2);
+    lines.push(`${useNeg ? negative : positive} ${word}.`);
+  });
+  lines.push("Pibo says the words again.");
+  lines.push("Pibo is happy.");
+  return fitSentences(lines, easy ? 5 : 6, easy ? 6 : 8);
+}
+
+export function templateStory({ words, level = "easy", theme = "", lesson = null } = {}) {
+  if (lesson?.fromTeacher) return teacherFramedStory({ words, level, theme, lesson });
   const place = theme || "the library";
   const list = normalizeWords(words);
   const spicy = list.filter((word) => /spicy/i.test(word));
@@ -203,7 +224,7 @@ export async function makeStory({
     };
   }
   return {
-    text: templateStory({ words: clean, level: safeLevel, theme: safeTheme }),
+    text: templateStory({ words: clean, level: safeLevel, theme: safeTheme, lesson }),
     author: "template",
     words: clean,
     level: safeLevel,

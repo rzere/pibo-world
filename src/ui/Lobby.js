@@ -179,9 +179,36 @@ export class Lobby {
     this.people.classList.toggle("hidden");
   }
 
+  /**
+   * Skip the free-world form. A signed-in student already belongs to one class.
+   * `title` is the class name shown on the bar. `world` is the join code.
+   */
+  enter({ world, name, char, title }) {
+    const worldName = cleanWorldName(world) || randomWorldName();
+    this._pick(char || this.profile.char || "pibo");
+    const playerName = String(name || "").trim().slice(0, 16) || this._defaultName();
+    this.profile = { ...this.profile, name: playerName, char: this._char };
+    saveProfile(this.profile);
+    this.world = worldName;
+    this.worldTitle = String(title || "").trim() || worldName;
+    this.classJoin = true;
+    const url = new URL(location.href);
+    url.searchParams.set("w", worldName);
+    url.searchParams.delete("code");
+    url.searchParams.delete("as");
+    history.replaceState(null, "", url);
+    this.join.classList.add("hidden");
+    this.bar.classList.remove("hidden");
+    this.onJoin?.({
+      world: worldName,
+      me: { ...this.profile, classTitle: this.worldTitle },
+    });
+  }
+
   async _copyLink() {
     const url = new URL(location.origin + location.pathname);
-    url.searchParams.set("w", this.world || "");
+    if (this.classJoin) url.searchParams.set("code", this.world || "");
+    else url.searchParams.set("w", this.world || "");
     try {
       await navigator.clipboard.writeText(url.toString());
       this.onToast?.("Link copied. Send it to a friend!");
@@ -194,7 +221,7 @@ export class Lobby {
   setWhere({ space, count, hostName }) {
     this._space = space;
     const mine = space === `home:${this.profile.id}`;
-    let where = `🌍 ${this.world || ""}`;
+    let where = `🌍 ${this.worldTitle || this.world || ""}`;
     if (space.startsWith("art:")) where = "🎨 Art room";
     else if (space.startsWith("arcade:")) where = "🕹️ Arcade";
     else if (space !== "world") where = mine ? "🏠 Your room" : `🏠 ${hostName || "A friend"}'s room`;

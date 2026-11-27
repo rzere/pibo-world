@@ -2,6 +2,7 @@ import { LIBRARY_MASCOT } from "../data/layers.js";
 import { FOOD_LIKES_LESSON } from "../data/lessons/foodLikes.js";
 import { highlightStory, lessonWords, makeStory, STORY_THEMES } from "../systems/storyGen.js";
 import { loadLibraryLog, saveLibraryLog } from "../systems/libraryLog.js";
+import { reportCreation, reportEnglish } from "../class/report.js";
 
 function h(tag, className, text) {
   const el = document.createElement(tag);
@@ -29,6 +30,15 @@ export class LibraryPanel {
     this.busy = false;
     this.log = loadLibraryLog();
     this._utter = null;
+  }
+
+  setLesson(lesson) {
+    if (!lesson) return;
+    this.lesson = lesson;
+    this.words = new Set(lessonWords(lesson).slice(0, 4).map((word) => word.toLowerCase()));
+    this.custom = [];
+    this.story = null;
+    if (this.isOpen) this._render();
   }
 
   open() {
@@ -127,6 +137,7 @@ export class LibraryPanel {
         this.custom.push(word);
       }
       this.words.add(word.toLowerCase());
+      reportEnglish(word, "library");
       this.log.add("word", { word, typed: true, on: true }, "child");
       saveLibraryLog(this.log, { lessonId: this.lesson.id });
       this._render();
@@ -222,6 +233,12 @@ export class LibraryPanel {
     });
     this.story = story;
     this.busy = false;
+    reportCreation({
+      kind: "story",
+      title: theme || this.lesson?.title || "Story",
+      text: story.text,
+      words: story.words,
+    });
     this.log.add("story", {
       text: story.text,
       words: story.words,

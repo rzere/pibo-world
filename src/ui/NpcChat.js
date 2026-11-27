@@ -1,4 +1,6 @@
 import { cleanChat } from "./Chat.js";
+import { practiceLines } from "../class/lessonPack.js";
+import { reportEnglish } from "../class/report.js";
 
 const CHIPS = ["Hello!", "I am happy.", "What do you like?", "Goodbye!"];
 
@@ -81,12 +83,8 @@ export class NpcChat {
     this.log.setAttribute("aria-live", "polite");
 
     const chips = el("div", "npc-chips");
-    for (const text of CHIPS) {
-      const chip = el("button", "npc-chip", text);
-      chip.type = "button";
-      chip.addEventListener("click", () => this._send(text));
-      chips.append(chip);
-    }
+    this.chips = chips;
+    this._fillChips(CHIPS);
 
     const form = el("form", "npc-form");
     this.input = el("input", "npc-input");
@@ -113,6 +111,32 @@ export class NpcChat {
     root.append(wrap);
   }
 
+  setLesson(lesson) {
+    this.lesson = lesson || null;
+    this._fillChips(practiceLines(this.lesson));
+  }
+
+  _fillChips(lines) {
+    if (!this.chips) return;
+    this.chips.replaceChildren();
+    for (const text of lines) {
+      const chip = el("button", "npc-chip", text);
+      chip.type = "button";
+      chip.addEventListener("click", () => this._send(text));
+      this.chips.append(chip);
+    }
+  }
+
+  _lessonPayload() {
+    const lesson = this.lesson;
+    if (!lesson?.fromTeacher) return undefined;
+    return {
+      vocabulary: (lesson.pools?.object || []).map((item) => item.label),
+      grammar: lesson.grammar?.frame || "",
+      topic: lesson.classText || lesson.themeLabel || "",
+    };
+  }
+
   _requestClose() {
     this.close();
     this.onClose?.();
@@ -130,6 +154,7 @@ export class NpcChat {
       return;
     }
     this.messages.push({ who: "you", text });
+    reportEnglish(text, "practice");
     this._render();
     this._ask();
   }
@@ -149,7 +174,7 @@ export class NpcChat {
       const res = await fetch("/api/npc", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: friend.id, history }),
+        body: JSON.stringify({ id: friend.id, history, lesson: this._lessonPayload() }),
       });
       const data = await res.json();
       if (data?.say) say = String(data.say).slice(0, 240);
