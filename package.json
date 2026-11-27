@@ -1,5 +1,12 @@
 {
   "name": "pibo-world",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "check": "node scripts/check-idea-gen.mjs && node scripts/check-arcade.mjs && node scripts/check-market.mjs && node scripts/check-class.mjs"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.9.0"
+  }
 }

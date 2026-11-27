@@ -3,6 +3,7 @@ import { createArcadeAssistant, templateArcadeStitch } from "../systems/arcadeAs
 import { read, normalizeSteps, normalizeSpec } from "../systems/gameSpec.js";
 import { createTreasurePlay } from "../systems/treasureRuntime.js";
 import { loadAuthorshipLog, saveAuthorshipLog, downloadJson } from "../systems/arcadeLog.js";
+import { reportEnglish } from "../class/report.js";
 
 const SAVE_KEY = "pibo.arcade.spec";
 const EDIT_STEPS = ["sticker", "goal", "key", "treasure", "order", "clue0", "clue1"];
@@ -42,6 +43,13 @@ export class ArcadeEditor {
     this._chromeSent = -1;
     this._pendingToast = "";
     this.screenEl = null;
+  }
+
+  setLesson(lesson) {
+    if (!lesson) return;
+    this.assistant = createArcadeAssistant({ lesson });
+    this.lesson = lesson;
+    if (this.isOpen && this.mode === "start") this._render();
   }
 
   open() {
@@ -229,7 +237,10 @@ export class ArcadeEditor {
     const text = String(typed || "").trim();
     if (!text && !chip) return;
     const usedChip = chip && text === chip.label;
-    if (!usedChip && text) this.log.add("typed", { questionId: q.id, text }, "child");
+    if (!usedChip && text) {
+      this.log.add("typed", { questionId: q.id, text }, "child");
+      reportEnglish(text, "arcade");
+    }
     this._stage(q, chip, text);
     this.questionIndex += 1;
     if (this.questionIndex < this.questions.length) {

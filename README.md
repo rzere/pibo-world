@@ -13,22 +13,70 @@ You wake up on a handcrafted **home island** painted like the concept. Walk the 
 ## Run it
 
 The project uses native ES modules, so it needs to be served over HTTP (opening
-`index.html` from the file system won't load the modules). No build step, no install.
+`index.html` from the file system won't load the modules). No build step.
+
+The island pictures work on any static server. Teacher and student sign-in
+need the small API server, because accounts live on the server:
 
 ```bash
-# from the project root
-python3 -m http.server 8000
+node scripts/dev-server.mjs
 # then open http://localhost:8000
 ```
 
-Any static server works (`npx serve`, `php -S localhost:8000`, a Live Server extension, …).
+`python3 -m http.server 8000` still opens the island, but the front door cannot
+sign anyone in.
 
 Three.js is loaded from a CDN via the import map in `index.html`, so you need an internet
 connection the first time.
 
+## Teachers and students
+
+pibo.world opens on a landing page with two doors: **I am a teacher** and
+**I am a student**. Each door has its own username and password. Nobody needs
+an email.
+
+- A teacher creates an account, then makes a **class world** (name, optional
+  description and level) and gets a short join code such as `mint-garden`.
+- A student creates an account with that code, a username, and a password.
+  A teacher can also create the student account and hand over the username
+  and password. The student then lands in that class world.
+- The teacher desk is `/teacher`. It holds the units (vocabulary, grammar,
+  short texts), the class summary, and each student's time, sessions,
+  stories, target words, and a log of grammar, spelling, and word mistakes.
+- The unit marked **in the game** feeds the animal chats, the library
+  stories, and the lighthouse idea prompts. The island UI itself is unchanged.
+
+Passwords are hashed with scrypt and a unique salt. The session is an
+HttpOnly cookie (`pibo_session`) kept for 14 days.
+
+Demo accounts (sample people, not real children), password `demo-class`:
+
+| Who | Username |
+| --- | --- |
+| Teacher Ms. Demo | `demo` |
+| Students in Mint Garden | `lina`, `omar`, `mei`, `sam` |
+
+Class code for that world: `mint-garden`.
+
+### What you need in production
+
+The class record is one JSON document.
+
+- **On this machine** it is `data/class-store.json` (the demo world is already in it).
+- **On Vercel**, create a Blob store and set `BLOB_READ_WRITE_TOKEN`.
+  The class file is stored as a private blob (password hashes stay off the
+  public web). Without that token the demo file can still be read, but new
+  worlds and new mistakes disappear when the function sleeps.
+- **Mistake language model** (optional): set `ANTHROPIC_API_KEY`, the same key
+  the animal chat and the lighthouse already use. With no key, a small rule
+  checker still logs clear grammar slips, near-miss spellings, and words
+  that are not on this week's list. `ANTHROPIC_MODEL` is optional.
+
+No other environment variables are required. Do not put API keys in the repo.
+
 ## Play
 
-- **WASD** / **arrow keys** — walk the island. Up the keyboard moves up the picture, and Pibo turns to face the way it is going. The camera stays fixed on the painting.
+- **WASD** / **arrow keys** — walk the island. Up the keyboard moves up the picture, and Pibo turns to face the way it is going. The camera follows Pibo and stays inside the painting.
 - **E** / **Enter** — step inside the lighthouse or the arcade
 - **1 / 2 / 3** — choose a plant
 - **Esc** — step back from a panel

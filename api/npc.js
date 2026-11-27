@@ -29,7 +29,25 @@ function backup(friend, history) {
   return friend.lines[n % friend.lines.length];
 }
 
-function promptFor(friend, history) {
+function lessonBlock(lesson) {
+  if (!lesson || typeof lesson !== "object") return "";
+  const words = (Array.isArray(lesson.vocabulary) ? lesson.vocabulary : [])
+    .map((word) => String(word || "").trim().slice(0, 32))
+    .filter(Boolean)
+    .slice(0, 20);
+  const grammar = String(lesson.grammar || "").trim().slice(0, 80);
+  const topic = String(lesson.topic || lesson.text || "").trim().slice(0, 180);
+  if (!words.length && !grammar) return "";
+  return `
+Class material for this week:
+- Words to practice: ${words.join(", ") || "(none)"}
+- Grammar to practice: ${grammar || "(none)"}
+- Topic: ${topic || "(none)"}
+Ask about these words and this grammar when you can. Other kind, simple English is fine too.
+`;
+}
+
+function promptFor(friend, history, lesson) {
   const lines = history
     .map((turn) => `${turn.who === "you" ? "Learner" : friend.name}: ${turn.text}`)
     .join("\n");
@@ -44,6 +62,7 @@ Rules:
 - Do not repeat the note inside "say". "say" continues the chat in character.
 - Kid-safe topics only: greetings, feelings, food, colors, animals, weather, counting, and this island. If they ask for something else, kindly steer back to those.
 - No brands, no scare, no romance.
+${lessonBlock(lesson)}
 Reply with only this JSON on one line, no markdown: {"say":"...","note":"..."}
 
 Conversation:
@@ -70,13 +89,14 @@ export default async function handler(req, res) {
     return;
   }
   const history = cleanHistory(input.history);
+  const lesson = input.lesson && typeof input.lesson === "object" ? input.lesson : null;
   const fallback = { say: backup(friend, history), note: "", source: "builtin" };
   if (!history.length || !hasKey()) {
     res.status(200).json(fallback);
     return;
   }
   try {
-    const { json, model } = await askClaudeJSON(promptFor(friend, history), { maxTokens: 280, timeoutMs: 12000 });
+    const { json, model } = await askClaudeJSON(promptFor(friend, history, lesson), { maxTokens: 280, timeoutMs: 12000 });
     res.status(200).json({ ...cleanReply(json, friend, history), source: "claude", model });
   } catch (err) {
     res.status(200).json({ ...fallback, reason: String(err.message || err).slice(0, 180) });
