@@ -3,7 +3,7 @@ import { Input } from "./Input.js";
 import { Collision } from "./Collision.js";
 import { Island } from "../world/Island.js";
 import { SpriteSet } from "../world/SpriteSet.js";
-import { PLATE_H, PLATE_W, isoBasis, isPhoneLandscape, orthoSize } from "../world/iso.js";
+import { PLATE_H, PLATE_W, clampFollow, isoBasis, isPhoneLandscape, orthoSize } from "../world/iso.js";
 import { isFlightAir, loadWalkMask } from "../world/biome.js";
 import { LAYOUT, PLACEMENTS, collidersFromPlacements } from "../world/layout.js";
 import { ASSETS, collectSources } from "../data/assets.js";
@@ -23,6 +23,13 @@ import { getPlant } from "../data/plants.js";
 import { PIBO_SCALE, SHOW_VILLAGE_FRIENDS } from "../config.js";
 
 const ENTER_RANGE = 2.15;
+// The painted pot sits in the lower part of its picture (the rest is empty).
+// This is the center of the opaque pixels, as a fraction of the art height
+// up from the feet, so the camera centers the pot and not the empty margin.
+const POT_CENTER = 0.27;
+// Exponential follow rate. Higher is tighter. A resize, the first frame,
+// and a return from a room or a flight snap instead of easing.
+const CAM_FOLLOW = 7;
 
 /**
  * Isometric island. The camera angle stays fixed; it only slides to follow
@@ -42,9 +49,7 @@ export class Game {
     this._initScene();
     this.input = new Input();
     this.ui.attachInput(this.input);
-    window.addEventListener("resize", () => this._onResize());
-    window.visualViewport?.addEventListener("resize", () => this._onResize());
-    window.visualViewport?.addEventListener("scroll", () => this._onResize());
+    this._bindViewport();
     window.addEventListener("keydown", (e) => {
       if (!["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) return;
       this.started = true;
@@ -95,9 +100,9 @@ export class Game {
       antialias: true,
       alpha: true,
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    const { w, h } = this._viewport();
-    renderer.setSize(w, h, false);
+    const box = this._measureViewport();
+    renderer.setPixelRatio(box.dpr);
+    renderer.setSize(box.w, box.h, false);
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.NoToneMapping;
@@ -204,17 +209,103 @@ export class Game {
     this.letterRead = false;
   }
 
-  _viewport() {
+  /**
+   * The visible page, not the layout viewport. iOS Safari's address bar
+   * changes visualViewport without a window resize, and for a frame after
+   * rotation the layout size is still the old orientation. devicePixelRatio
+   * is capped at 2, matching the buffer we can afford on a phone.
+   */
+  _measureViewport() {
     const vv = window.visualViewport;
+    const w = vv?.width || window.innerWidth || this.canvas?.clientWidth || 1;
+    const h = vv?.height || window.innerHeight || this.canvas?.clientHeight || 1;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
     return {
-      w: Math.round(vv?.width || window.innerWidth),
-      h: Math.round(vv?.height || window.innerHeight),
+      w: Math.max(1, w),
+      h: Math.max(1, h),
+      dpr,
+      top: vv?.offsetTop || 0,
+      left: vv?.offsetLeft || 0,
     };
+  }
+
+  _sameViewport(box) {
+    const prev = this._vp;
+    if (!prev) return false;
+    return Math.abs(prev.w - box.w) < 0.5
+      && Math.abs(prev.h - box.h) < 0.5
+      && Math.abs(prev.dpr - box.dpr) < 0.01
+      && Math.abs(prev.top - box.top) < 0.5
+      && Math.abs(prev.left - box.left) < 0.5;
+  }
+
+  _bindViewport() {
+    const refresh = () => this._onResize();
+    window.addEventListener("resize", refresh);
+    window.addEventListener("orientationchange", () => this._afterOrientation());
+    window.addEventListener("pageshow", refresh);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") refresh();
+    });
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", refresh);
+    vv?.addEventListener("scroll", refresh);
+    this._watchPixelRatio();
+  }
+
+  _afterOrientation() {
+    // iOS applies the new visual viewport and devicePixelRatio a frame
+    // or two after orientationchange. The event itself still reports the
+    // previous size, which would leave the camera on the old aspect.
+    this._onResize();
+    requestAnimationFrame(() => this._onResize());
+    setTimeout(() => this._onResize(), 120);
+    setTimeout(() => this._onResize(), 400);
+  }
+
+  _watchPixelRatio() {
+    if (!window.matchMedia) return;
+    const dpr = window.devicePixelRatio || 1;
+    let media;
+    try {
+      media = window.matchMedia(`(resolution: ${dpr}dppx)`);
+    } catch {
+      return;
+    }
+    const onChange = () => {
+      if (media.removeEventListener) media.removeEventListener("change", onChange);
+      else media.removeListener?.(onChange);
+      this._onResize();
+      this._watchPixelRatio();
+    };
+    try {
+      if (media.addEventListener) media.addEventListener("change", onChange);
+      else media.addListener?.(onChange);
+    } catch {
+      // The per-frame visualViewport check still picks up a ratio change.
+    }
+  }
+
+  _applyViewportBox(box) {
+    const root = document.documentElement;
+    root.style.setProperty("--app-width", `${box.w}px`);
+    root.style.setProperty("--app-height", `${box.h}px`);
+    root.style.setProperty("--app-top", `${box.top}px`);
+    root.style.setProperty("--app-left", `${box.left}px`);
   }
 
   _initCamera() {
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 220);
+    this._fitted = false;
     this._onResize();
+  }
+
+  /** Screen point on the pot, in the same plane the camera looks at. */
+  _focusOnPibo() {
+    const pibo = this.pibo;
+    if (!pibo) return { x: 0, y: 0 };
+    const height = (pibo.asset?.height || 2) * (pibo.charScale || 1);
+    return { x: pibo.x, y: -pibo.z + height * POT_CENTER };
   }
 
   start() {
@@ -266,6 +357,12 @@ export class Game {
   }
 
   _frame() {
+    // A fixed page often gets no resize when the iOS toolbar collapses.
+    // Checking the visual viewport each frame is what keeps the frustum
+    // on the pixels the player can actually see.
+    const box = this._measureViewport();
+    if (!this._sameViewport(box) || (this.camera && !this._fitted)) this._onResize();
+
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.multiplayer?.update(dt);
     this.animalBubbles?.update(dt);
@@ -358,23 +455,16 @@ export class Game {
   }
 
   _updateCamera(dt = 0) {
-    // Keep the view inside the painting. A short window crops the top and
-    // bottom evenly so the lighthouse stays on screen. Slide only on a
-    // sideways phone, when the view is smaller than the picture.
-    let x = 0;
-    let y = 0;
-    const pictureFits = this._viewW + 0.12 >= PLATE_W && this._viewH + 0.12 >= PLATE_H;
-    if (this._phoneLandscape && this.pibo && !pictureFits) {
-      const plateH = ASSETS.plate.height;
-      const limitX = Math.max(0, (PLATE_W - this._viewW) / 2);
-      const limitY = Math.max(0, (plateH - this._viewH) / 2);
-      const focusY = -this.pibo.z + (this.pibo.asset?.height || 2) * (this.pibo.charScale || 1) * 0.35;
-      x = Math.min(limitX, Math.max(-limitX, this.pibo.x));
-      y = Math.min(limitY, Math.max(-limitY, focusY));
-    }
-    const k = dt > 0 ? 1 - Math.exp(-dt * 7) : 1;
-    this._camX += (x - this._camX) * k;
-    this._camY += (y - this._camY) * k;
+    if (!this.camera) return;
+    // Center on the pot on every viewport. The clamp is what keeps the
+    // painting's edges from sliding in and showing blank around them.
+    const focus = this._focusOnPibo();
+    const target = clampFollow(focus.x, focus.y, this._viewW, this._viewH, PLATE_W, PLATE_H);
+    const k = dt > 0 ? 1 - Math.exp(-dt * CAM_FOLLOW) : 1;
+    this._camX += (target.x - this._camX) * k;
+    this._camY += (target.y - this._camY) * k;
+    this._camX = Math.min(target.limitX, Math.max(-target.limitX, this._camX));
+    this._camY = Math.min(target.limitY, Math.max(-target.limitY, this._camY));
     this.camera.position.set(this._camX, this._camY, 40);
     this.camera.up.set(0, 1, 0);
     this.camera.lookAt(this._camX, this._camY, 0);
@@ -869,7 +959,13 @@ export class Game {
   }
 
   _onResize() {
-    const { w, h } = this._viewport();
+    const box = this._measureViewport();
+    const unchanged = this._sameViewport(box);
+    if (unchanged && this._fitted) return;
+    this._vp = box;
+    this._applyViewportBox(box);
+
+    const { w, h, dpr } = box;
     const phone = isPhoneLandscape(w, h);
     const { viewW, viewH } = orthoSize(w, h);
     this._viewW = viewW;
@@ -877,25 +973,25 @@ export class Game {
     this._phoneLandscape = phone;
     document.documentElement.classList.toggle("phone-landscape", phone);
     if (phone) this.ui.useTouchControls();
-    if (!phone) {
-      this._camX = 0;
-      this._camY = 0;
-    }
-    if (!this.camera) return;
-    this.camera.left = -viewW / 2;
-    this.camera.right = viewW / 2;
-    this.camera.top = viewH / 2;
-    this.camera.bottom = -viewH / 2;
-    this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
-    this.canvas.style.width = "100%";
-    this.canvas.style.height = "100%";
     this.studio?.resize(w, h);
     this.arcadeRoom?.resize(w, h);
     this.libraryRoom?.resize(w, h);
     this.ui.art?.layout();
     this.ui.trophy?.layout();
     this.market?.layout();
+
+    if (!this.camera) return;
+    this.camera.left = -viewW / 2;
+    this.camera.right = viewW / 2;
+    this.camera.top = viewH / 2;
+    this.camera.bottom = -viewH / 2;
+    this.camera.updateProjectionMatrix();
+    // Snap. Easing here would leave the old center outside the new window
+    // for a few frames and show blank past the plate.
     this._updateCamera(0);
+    this._fitted = true;
   }
 }

@@ -49,3 +49,20 @@ export function orthoSize(width, height) {
 export function isPhoneLandscape(width, height) {
   return width > height && height > 0 && height <= 520;
 }
+
+/**
+ * Center the orthographic window on a focus point, then keep the window
+ * inside the plate. Sliding a window that is already wider or taller than
+ * the plate would uncover blank space past the painting, so that axis stays
+ * centered on the plate instead.
+ */
+export function clampFollow(focusX, focusY, viewW, viewH, plateW = PLATE_W, plateH = PLATE_H) {
+  const limitX = Math.max(0, (plateW - viewW) / 2);
+  const limitY = Math.max(0, (plateH - viewH) / 2);
+  return {
+    x: Math.min(limitX, Math.max(-limitX, focusX)),
+    y: Math.min(limitY, Math.max(-limitY, focusY)),
+    limitX,
+    limitY,
+  };
+}
